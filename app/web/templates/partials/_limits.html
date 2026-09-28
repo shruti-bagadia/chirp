@@ -1,0 +1,8 @@
+{% for name, label in [("daily_apply_cap", "Max applications a day"), ("fit_threshold", "Fit score to reach the nest")] %}
+<div class="set-row"><span>{{ label }}</span>
+  <div class="stepper">
+    <button hx-post="/settings/limit" hx-vals='{"name": "{{ name }}", "delta": "{{ -5 if name == "fit_threshold" else -1 }}"}' hx-target="#limits" aria-label="Decrease">−</button>
+    <span>{{ limits[name] }}</span>
+    <button hx-post="/settings/limit" hx-vals='{"name": "{{ name }}", "delta": "{{ 5 if name == "fit_threshold" else 1 }}"}' hx-target="#limits" aria-label="Increase">+</button>
+  </div></div>
+{% endfor %}

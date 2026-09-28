@@ -1,0 +1,18 @@
+<h2 class="section-t">Answer bank</h2>
+<div class="panel">
+  {% if not answers %}
+  <div class="empty"><p>Nothing saved yet. Answers you give from "Needs a hand" land here too.</p></div>
+  {% endif %}
+  {% set cats = answers | map(attribute="category") | unique | list %}
+  {% for cat in cats %}
+  <div class="sub-t">{{ cat | capitalize }}</div>
+  {% for a in answers if a.category == cat %}
+  <div class="card">
+    <button type="button" class="card-open" hx-get="/answers/{{ a.id }}" hx-target="#sheet-body" aria-label="Edit answer to {{ a.question }}">
+      <div class="title">{{ a.question }}</div>
+      <div class="meta">{{ a.answer[:80] }}{{ "…" if a.answer | length > 80 else "" }}</div>
+    </button>
+  </div>
+  {% endfor %}
+  {% endfor %}
+</div>

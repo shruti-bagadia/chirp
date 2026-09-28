@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_art.html" import bloom %}
+{% block content %}
+<h2 class="section-t">This week · {{ flown | length }} flown</h2>
+<div class="panel">
+  <div class="tally" aria-label="{{ flown | length }} applications this week">
+    {% for f in flown %}{{ bloom("#F2C86B" if f.callback else "#E7A3B1") }}{% endfor %}
+  </div>
+  {% for f in flown %}
+  <div class="card">
+    <button type="button" class="card-open" hx-get="/flown/{{ f.id }}" hx-target="#sheet-body" aria-label="Open application to {{ f.company }}">
+      <div class="title">{{ f.role }}</div><div class="meta">{{ f.company }} · {{ f.day }}{% if f.via == "You" %} · applied by you{% endif %}</div>
+    </button>
+    {% include "partials/_callback.html" %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

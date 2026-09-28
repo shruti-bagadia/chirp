@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<form id="queue-form" onsubmit="return false">
+  {% include "partials/_queue.html" %}
+</form>
+{% endblock %}
+{% block actionbar %}
+<div class="actionbar" id="actionbar" {% if not jobs %}hidden{% endif %}>
+  <div class="inner">
+    <button class="btn btn-let" id="letgo" disabled data-bulk="reject"
+      hx-post="/jobs/bulk" hx-include="#queue-form" hx-vals='{"action": "reject"}'
+      hx-target="#queue" hx-swap="outerHTML swap:550ms">Let go</button>
+    <button class="btn btn-go" id="go" disabled data-bulk="approve"
+      hx-post="/jobs/bulk" hx-include="#queue-form" hx-vals='{"action": "approve"}'
+      hx-target="#queue" hx-swap="outerHTML swap:550ms">Ready to fly</button>
+  </div>
+</div>
+{% endblock %}

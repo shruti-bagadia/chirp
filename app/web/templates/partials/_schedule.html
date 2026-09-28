@@ -1,0 +1,22 @@
+{% set days_all = ["mon","tue","wed","thu","fri","sat","sun"] %}
+<h2 class="section-t">Schedule</h2>
+<div class="panel">
+  <div class="set-row"><span style="font-weight:700">Chirp is resting</span>
+    <button class="sw" role="switch" aria-checked="{{ 'true' if schedule.paused else 'false' }}" aria-label="Pause all scheduled runs" hx-post="/settings/pause" hx-target="#schedule"></button></div>
+  {% for step, label in [("find", "Find jobs at"), ("apply", "Fly applications at")] %}
+  <div class="sub-t">{{ label }}</div>
+  <div class="tchips">
+    {% for t in schedule[step].times %}
+    <span class="tchip">{{ t | ampm }}<button hx-post="/settings/schedule/remove" hx-vals='{"step": "{{ step }}", "time": "{{ t }}"}' hx-target="#schedule" aria-label="Remove {{ t | ampm }}">×</button></span>
+    {% endfor %}
+    <label class="tadd">+ <input type="time" name="time" aria-label="Add a time" hx-post="/settings/schedule/add" hx-trigger="change" hx-vals='{"step": "{{ step }}"}' hx-target="#schedule"></label>
+  </div>
+  {% endfor %}
+  <div class="sub-t">On these days</div>
+  <div class="days">
+    {% for d in days_all %}
+    <button class="day" aria-pressed="{{ 'true' if d in schedule.find.days else 'false' }}" hx-post="/settings/schedule/day" hx-vals='{"day": "{{ d }}"}' hx-target="#schedule">{{ d[:2] | capitalize }}</button>
+    {% endfor %}
+  </div>
+  {% if error %}<p class="err" style="padding:0 16px 12px">{{ error }}</p>{% endif %}
+</div>

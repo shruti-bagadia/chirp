@@ -1,0 +1,33 @@
+{% from "_art.html" import bloom, nest as nest_art, sparrow_sit %}
+<div id="queue" hx-get="/partials/queue" hx-trigger="chirp:refresh-queue from:body" hx-swap="outerHTML">
+{% if jobs %}
+  <div class="panel">
+    <div class="panel-top">
+      <label style="display:flex;align-items:center;gap:10px;font-weight:800">
+        <span class="pick"><input type="checkbox" id="pick-all" aria-label="Select all"><span class="box">{{ bloom() }}</span></span>
+        Select all {{ jobs | length }}
+      </label>
+    </div>
+    {% for j in jobs %}
+    <div class="row" id="row-{{ j.id }}">
+      <span class="pick"><input type="checkbox" name="ids" value="{{ j.id }}" aria-label="Select {{ j.title }} at {{ j.company }}"><span class="box">{{ bloom() }}</span></span>
+      <div class="score {{ 'hi' if j.score >= 85 }}" aria-label="Fit score {{ j.score }}">{{ j.score }}</div>
+      <button type="button" class="info" hx-get="/jobs/{{ j.id }}" hx-target="#sheet-body">
+        <div class="title">{{ j.title }}</div>
+        <div class="meta">{{ j.company }} · {{ j.mode }}{% if j.mode == "Onsite" %}<span class="flag">onsite</span>{% endif %}</div>
+        <div class="ctc" id="row-ctc-{{ j.id }}">₹{{ "%g" | format(j.ctc) }} LPA</div>
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="panel"><div class="empty">
+    <svg class="rest" viewBox="0 0 120 70" aria-hidden="true">
+      <svg x="22" y="0" width="76" height="57" viewBox="0 0 120 90">{{ sparrow_sit("resting") }}</svg>
+      <svg x="10" y="34" width="100" height="36" viewBox="0 0 100 40">{{ nest_art() }}</svg>
+    </svg>
+    <p>The nest is quiet. New jobs land here after the next find, at {{ next_find }}.</p>
+    <p style="margin-top:14px"><button type="button" class="btn btn-soft" hx-post="/runs/find" hx-target="#runstrip">Find jobs now</button></p>
+  </div></div>
+{% endif %}
+</div>

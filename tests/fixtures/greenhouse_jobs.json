@@ -1,0 +1,38 @@
+{
+  "jobs": [
+    {
+      "id": 4012345,
+      "title": "Backend Engineer II (Python)",
+      "absolute_url": "https://boards.greenhouse.io/acmepay/jobs/4012345?gh_src=linkedin",
+      "location": {"name": "Pune, Maharashtra, India"},
+      "first_published": "2026-09-26T09:15:00Z",
+      "updated_at": "2026-09-27T10:00:00Z",
+      "content": "&lt;p&gt;We build payment APIs in &lt;strong&gt;Python and FastAPI&lt;/strong&gt;.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;2-4 years of experience&lt;/li&gt;&lt;li&gt;Hybrid, 3 days in our Pune office&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;CTC: 18-24 LPA&lt;/p&gt;"
+    },
+    {
+      "id": 4012346,
+      "title": "Senior Frontend Engineer",
+      "absolute_url": "https://boards.greenhouse.io/acmepay/jobs/4012346",
+      "location": {"name": "Pune, India"},
+      "first_published": "2026-09-26T09:15:00Z",
+      "content": "&lt;p&gt;React and TypeScript.&lt;/p&gt;"
+    },
+    {
+      "id": 4012347,
+      "title": "Staff Platform Engineer",
+      "absolute_url": "https://boards.greenhouse.io/acmepay/jobs/4012347",
+      "location": {"name": "Bengaluru, India"},
+      "first_published": "2026-09-20T09:15:00Z",
+      "content": "&lt;p&gt;8+ years building distributed systems.&lt;/p&gt;"
+    },
+    {
+      "id": 4012348,
+      "title": "AI Engineer, Document Intelligence",
+      "absolute_url": "https://boards.greenhouse.io/acmepay/jobs/4012348",
+      "location": {"name": "Remote - India"},
+      "first_published": "2026-09-27T06:00:00Z",
+      "content": "&lt;p&gt;LLM and OCR pipelines. Minimum 2 years of experience.&lt;/p&gt;"
+    }
+  ],
+  "meta": {"total": 4}
+}

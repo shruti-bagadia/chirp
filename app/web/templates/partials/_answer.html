@@ -1,0 +1,8 @@
+<h2>Answer once</h2>
+<p class="meta" style="margin-top:4px">“{{ h.question }}”</p>
+<form hx-post="/hands/{{ h.id }}/answer" hx-target="#hands" hx-swap="innerHTML">
+  <textarea name="answer" required aria-label="Your answer" placeholder="Write it once. Chirp remembers it for every form that asks."></textarea>
+  <div class="err">{{ error or "" }}</div>
+  <label class="toggle"><input type="checkbox" name="save" checked> Save to answer bank</label>
+  <div class="sheet-actions"><button class="btn btn-go" type="submit">Save answer</button></div>
+</form>

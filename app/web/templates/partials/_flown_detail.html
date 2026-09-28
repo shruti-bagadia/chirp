@@ -1,0 +1,14 @@
+<h2>{{ f.role }}</h2>
+<p class="meta">{{ f.company }} · applied {{ f.day }} {{ "by Chirp" if f.via == "Chirp" else "by you" }}</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">
+  <a class="btn btn-go" href="{{ f.url }}" target="_blank" rel="noopener" style="text-decoration:none">Open application ↗</a>
+  <a class="btn btn-soft" href="#" onclick="ChirpFX.toast('PDFs arrive with tailoring (M2)');return false" style="text-decoration:none">Resume sent</a>
+</div>
+<h3>Expected CTC given</h3><p>{{ f.expected_ctc }}</p>
+<h3>Answers submitted</h3>
+{% for q, a in f.answers %}
+<div class="copyrow"><div><div class="k">{{ q }}</div><div class="v">{{ a }}</div></div></div>
+{% endfor %}
+<details class="letter"><summary>Cover letter sent</summary><p>{{ f.cover_letter }}</p></details>
+<h3>Outcome</h3>
+{% include "partials/_callback.html" %}

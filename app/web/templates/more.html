@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div id="schedule">{% include "partials/_schedule.html" %}</div>
+<h2 class="section-t">Expected CTC tiers</h2>
+<div class="panel">
+  {% for name, t in tiers.items() %}
+  <div class="set-row"><span style="font-weight:700">{{ name | capitalize }}</span><span>₹{{ t.min }}–{{ t.max }} LPA <span class="meta">· floor {{ t.floor }}</span></span></div>
+  {% endfor %}
+</div>
+<h2 class="section-t">Daily limits</h2>
+<div class="panel" id="limits">{% include "partials/_limits.html" %}</div>
+<div id="companies">{% include "partials/_companies.html" %}</div>
+<div id="answers">{% include "partials/_answers.html" %}</div>
+<div class="panel" style="margin-top:14px">
+  <form method="post" action="/logout"><button class="btn btn-soft" type="submit" style="width:100%">Sign out</button></form>
+</div>
+{% endblock %}

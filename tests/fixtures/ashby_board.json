@@ -1,0 +1,26 @@
+{
+  "apiVersion": "1",
+  "jobs": [
+    {
+      "id": "e1f2a3b4-0000-0000-0000-000000000001",
+      "title": "LLM Engineer",
+      "location": "Pune, India",
+      "workplaceType": "Hybrid",
+      "isRemote": false,
+      "isListed": true,
+      "employmentType": "FullTime",
+      "publishedAt": "2026-09-27T04:30:00.000Z",
+      "jobUrl": "https://jobs.ashbyhq.com/lexa/e1f2a3b4-0000-0000-0000-000000000001",
+      "applyUrl": "https://jobs.ashbyhq.com/lexa/e1f2a3b4-0000-0000-0000-000000000001/application",
+      "descriptionPlain": "RAG systems in Python. 2-4 years of experience."
+    },
+    {
+      "id": "e1f2a3b4-0000-0000-0000-000000000002",
+      "title": "Unlisted Role",
+      "location": "Pune",
+      "isListed": false,
+      "jobUrl": "https://jobs.ashbyhq.com/lexa/e1f2a3b4-0000-0000-0000-000000000002",
+      "descriptionPlain": "Hidden."
+    }
+  ]
+}

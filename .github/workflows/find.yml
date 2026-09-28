@@ -1,0 +1,37 @@
+name: find
+# "Find now" in the dashboard dispatches this workflow.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: find
+  cancel-in-progress: false
+
+jobs:
+  find:
+    # Turn on by setting the repo variable CHIRP_SCHEDULING=on (after secrets are added).
+    if: vars.CHIRP_SCHEDULING == 'on'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CHIRP_ENV: production
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+      DASHBOARD_PASSWORD_HASH: ${{ secrets.DASHBOARD_PASSWORD_HASH }}
+      CHIRP_API_TOKEN: ${{ secrets.CHIRP_API_TOKEN }}
+      LLM_PROVIDER: gemini
+      LLM_MODEL: ${{ vars.LLM_MODEL }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install .
+      - name: Install Tectonic (LaTeX)
+        run: |
+          curl --proto '=https' --tlsv1.2 -fsSL https://drop-sh.fullyjustified.net | sh
+          sudo mv tectonic /usr/local/bin/
+      - run: chirp find
+      - run: chirp process

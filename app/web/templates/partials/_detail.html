@@ -1,0 +1,17 @@
+<h2>{{ j.title }}</h2>
+<p class="meta">{{ j.company }} · {{ j.location }} · {{ j.mode }}</p>
+<div style="display:flex;gap:14px;align-items:center;margin-top:14px"><div class="big">{{ j.score }}</div><p>{{ j.why }}</p></div>
+<h3>Matches</h3><div class="chips">{% for m in j.matches %}<span class="chip">{{ m }}</span>{% endfor %}</div>
+{% if j.gaps %}<h3>Gaps</h3><div class="chips">{% for g in j.gaps %}<span class="chip gap">{{ g }}</span>{% endfor %}</div>{% endif %}
+<h3>Resume changes</h3><p>{{ j.changes }}</p>
+<h3>Expected CTC</h3>
+<div id="ctc-{{ j.id }}">{% include "partials/_ctc.html" %}</div>
+<div style="display:flex;gap:18px;margin-top:12px;flex-wrap:wrap">
+  <a class="link" href="#" onclick="ChirpFX.toast('Postings open once real jobs are connected');return false">Open posting</a>
+  <a class="link" href="#" onclick="ChirpFX.toast('PDFs arrive with tailoring (M2)');return false">Open resume PDF</a>
+</div>
+<details class="letter"><summary>Read cover letter</summary><p>{{ j.cover_letter }}</p></details>
+<div class="sheet-actions">
+  <button class="btn btn-let" data-bulk="reject" data-id="{{ j.id }}" hx-post="/jobs/bulk" hx-vals='{"action": "reject", "ids": "{{ j.id }}"}' hx-target="#queue" hx-swap="outerHTML swap:550ms">Let go</button>
+  <button class="btn btn-go" data-bulk="approve" data-id="{{ j.id }}" hx-post="/jobs/bulk" hx-vals='{"action": "approve", "ids": "{{ j.id }}"}' hx-target="#queue" hx-swap="outerHTML swap:550ms">Ready to fly</button>
+</div>

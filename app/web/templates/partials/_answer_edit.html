@@ -1,0 +1,10 @@
+<h2>Edit answer</h2>
+<p class="meta" style="margin-top:4px">“{{ a.question }}” · {{ a.category | capitalize }} · used {{ a.times_used }}×</p>
+<form hx-post="/answers/{{ a.id }}" hx-target="#answers">
+  <h3>Answer</h3>
+  <textarea name="answer" required aria-label="Answer">{{ a.answer }}</textarea>
+  <h3>Short version (optional, for character-limited fields)</h3>
+  <textarea name="short_answer" aria-label="Short answer" style="min-height:70px">{{ a.short_answer }}</textarea>
+  <div class="err">{{ error or "" }}</div>
+  <div class="sheet-actions"><button class="btn btn-go" type="submit">Save</button></div>
+</form>

@@ -1,0 +1,12 @@
+- question: What is your notice period?
+  answer: 30 days
+  type: fixed
+  category: logistics
+- question: What is your expected CTC?
+  answer: "{tier_range}"
+  type: rule_based
+  category: compensation
+- question: What is your greatest strength?
+  answer: Turning slow manual processes into reliable backend services.
+  type: personal
+  category: behavioral

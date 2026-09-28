@@ -1,0 +1,2 @@
+<p class="sub" id="counts" hx-swap-oob="true">{% include "partials/_counts.html" %}</p>
+<span class="badge" id="hands-badge" hx-swap-oob="true" {% if not counts.hands %}hidden{% endif %}>{{ counts.hands }}</span>

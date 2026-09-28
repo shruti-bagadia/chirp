@@ -1,0 +1,1 @@
+<button class="cb" data-cb="{{ f.id }}" aria-pressed="{{ 'true' if f.callback else 'false' }}" hx-post="/flown/{{ f.id }}/callback" hx-swap="outerHTML">{{ "Callback ✓" if f.callback else "Got a callback?" }}</button>

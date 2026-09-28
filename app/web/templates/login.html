@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2F3F6B">
+  <title>Sign in · Chirp</title>
+  <link rel="stylesheet" href="{{ static }}/chirp.css">
+</head>
+<body>
+<div class="app" style="max-width:380px;margin:15vh auto 0;padding:0 16px">
+  <h1 style="text-align:center">🐦 Chirp</h1>
+  <p class="sub" style="text-align:center;margin-bottom:24px">{{ greeting }}. Sign in to see your nest.</p>
+  <div class="panel" style="padding:20px">
+    <form method="post" action="/login">
+      <label for="password" style="display:block;margin-bottom:8px;font-weight:700">Password</label>
+      <input id="password" name="password" type="password" autofocus required
+             style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);margin-bottom:12px;box-sizing:border-box">
+      {% if error %}<div class="err" style="margin-bottom:12px">{{ error }}</div>{% endif %}
+      <button class="btn btn-go" type="submit" style="width:100%">Sign in</button>
+    </form>
+  </div>
+</div>
+</body>
+</html>

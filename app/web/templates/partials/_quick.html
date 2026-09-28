@@ -1,0 +1,7 @@
+<h2>{{ h.company }}</h2>
+<p class="meta">{{ h.role }} · {{ h.platform }}</p>
+<p style="margin-top:12px"><a class="btn btn-soft" href="#" onclick="ChirpFX.toast('Opens the real application once connected');return false" style="display:inline-block;text-decoration:none">Open application ↗</a></p>
+{% for k, v, action in [("Resume PDF", "Tailored for " ~ h.company, "Download"), ("Cover letter", "Ready", "Copy"), ("Notice period", "15 days", "Copy"), ("Expected CTC", "18–22 LPA", "Copy"), ("Current location", "Pune", "Copy"), ("Why this company?", "Tailored answer", "Copy")] %}
+<div class="copyrow"><div><div class="k">{{ k }}</div><div class="v">{{ v }}</div></div><button class="btn btn-soft" data-copy="{{ v }}">{{ action }}</button></div>
+{% endfor %}
+<div class="sheet-actions"><button class="btn btn-go" hx-post="/hands/{{ h.id }}/applied" hx-target="#hands" hx-swap="innerHTML">I've applied</button></div>

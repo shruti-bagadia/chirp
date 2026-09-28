@@ -1,0 +1,36 @@
+[
+  {
+    "id": "b7c1e2f0-1111-4a2b-9c3d-000000000001",
+    "text": "Software Engineer - Backend",
+    "hostedUrl": "https://jobs.lever.co/finloop/b7c1e2f0-1111-4a2b-9c3d-000000000001",
+    "applyUrl": "https://jobs.lever.co/finloop/b7c1e2f0-1111-4a2b-9c3d-000000000001/apply",
+    "createdAt": 1790150400000,
+    "workplaceType": "hybrid",
+    "categories": {"location": "Pune", "commitment": "Full-time", "team": "Engineering"},
+    "descriptionPlain": "Build lending APIs with Python and Django. 1-3 years of experience.",
+    "lists": [{"text": "What you'll do", "content": "<li>Design REST APIs</li><li>Own services end to end</li>"}],
+    "additionalPlain": "",
+    "salaryRange": {"currency": "INR", "interval": "per-year-salary", "min": 1500000, "max": 2000000}
+  },
+  {
+    "id": "b7c1e2f0-1111-4a2b-9c3d-000000000002",
+    "text": "Backend Developer (Contract)",
+    "hostedUrl": "https://jobs.lever.co/finloop/b7c1e2f0-1111-4a2b-9c3d-000000000002",
+    "createdAt": 1790150400000,
+    "workplaceType": "remote",
+    "categories": {"location": "India", "commitment": "Contract"},
+    "descriptionPlain": "A 3-month contract to migrate our Python services.",
+    "lists": []
+  },
+  {
+    "id": "b7c1e2f0-1111-4a2b-9c3d-000000000003",
+    "text": "Python Engineer",
+    "hostedUrl": "https://jobs.lever.co/finloop/b7c1e2f0-1111-4a2b-9c3d-000000000003",
+    "createdAt": 1790150400000,
+    "workplaceType": "onsite",
+    "categories": {"location": "Pune", "commitment": "Full-time"},
+    "descriptionPlain": "Payments engineering. 2+ years.",
+    "lists": [],
+    "salaryRange": {"currency": "INR", "interval": "per-year-salary", "min": 800000, "max": 1200000}
+  }
+]

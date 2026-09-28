@@ -1,0 +1,22 @@
+{% from "_art.html" import sparrow_sit %}
+{% set qs = hands | selectattr("kind", "equalto", "question") | list %}
+{% set qk = hands | selectattr("kind", "equalto", "quick") | list %}
+{% set bl = hands | selectattr("kind", "equalto", "blocked") | list %}
+{% if not hands %}
+<div class="panel"><div class="empty">
+  <svg class="rest" viewBox="0 0 120 90" aria-hidden="true" style="width:110px">{{ sparrow_sit() }}</svg>
+  <p>Nothing needs a hand. Chirp has it covered.</p>
+</div></div>
+{% endif %}
+{% if qs %}<h2 class="section-t">New questions ({{ qs | length }})</h2><div class="panel">
+  {% for h in qs %}<div class="card" id="hand-{{ h.id }}"><div><div class="title">“{{ h.question }}”</div><div class="meta">{{ h.companies | join(", ") }} waiting</div></div>
+  <button class="btn btn-go" hx-get="/hands/{{ h.id }}/answer" hx-target="#sheet-body">Answer once</button></div>{% endfor %}
+</div>{% endif %}
+{% if qk %}<h2 class="section-t">Quick apply ({{ qk | length }})</h2><div class="panel">
+  {% for h in qk %}<div class="card" id="hand-{{ h.id }}"><div><div class="title">{{ h.company }}</div><div class="meta">{{ h.role }} · {{ h.platform }}</div></div>
+  <button class="btn btn-soft" hx-get="/hands/{{ h.id }}/quick" hx-target="#sheet-body">Open</button></div>{% endfor %}
+</div>{% endif %}
+{% if bl %}<h2 class="section-t">Blocked ({{ bl | length }})</h2><div class="panel">
+  {% for h in bl %}<div class="card" id="hand-{{ h.id }}"><div><div class="title">{{ h.company }}</div><div class="meta">{{ h.role }} · {{ h.reason }}</div></div>
+  <button class="btn btn-soft" hx-post="/hands/{{ h.id }}/retry" hx-target="#hands" hx-swap="innerHTML">Try again</button></div>{% endfor %}
+</div>{% endif %}

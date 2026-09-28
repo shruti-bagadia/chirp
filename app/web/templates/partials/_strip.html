@@ -1,0 +1,16 @@
+<div class="strip" {% if running %}hx-get="/runs/strip" hx-trigger="every 1s" hx-target="#runstrip"{% endif %}>
+  {% if paused %}
+  <div class="sline"><span><b>Chirp is resting.</b> Scheduled runs are off.</span>
+    <button class="link" hx-post="/settings/pause" hx-target="#runstrip">Wake up</button></div>
+  {% endif %}
+  <div class="sline">
+    {% if running == "find" %}<span class="working"><span class="dot"></span><span class="dot"></span><span class="dot"></span><b>Finding jobs…</b></span>
+    {% else %}<span>Next find <b>{{ next_find }}</b></span>{% endif %}
+    <button class="pill" hx-post="/runs/find" hx-target="#runstrip" {% if running %}disabled{% endif %}>Find now</button>
+  </div>
+  <div class="sline">
+    {% if running == "apply" %}<span class="working"><span class="dot"></span><span class="dot"></span><span class="dot"></span><b>Flying applications…</b></span>
+    {% else %}<span>Next fly <b>{{ next_fly }}</b></span>{% endif %}
+    <button class="pill" hx-post="/runs/apply" hx-target="#runstrip" {% if running %}disabled{% endif %}>Fly now</button>
+  </div>
+</div>

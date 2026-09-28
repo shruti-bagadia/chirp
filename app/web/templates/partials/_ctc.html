@@ -1,0 +1,4 @@
+<form class="ctc-edit" hx-post="/jobs/{{ j.id }}/ctc" hx-trigger="change" hx-target="#ctc-{{ j.id }}">
+  ₹<input name="expected_ctc" inputmode="decimal" value="{{ '%g' | format(j.ctc) }}" aria-label="Expected CTC in LPA"> LPA
+</form>
+<div class="err">{{ error or "" }}</div>

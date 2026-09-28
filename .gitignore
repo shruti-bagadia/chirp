@@ -1,0 +1,24 @@
+# Secrets and personal data: never commit
+.env
+.env.*
+!.env.example
+profile/
+*.pdf
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Playwright / local
+.chirp/
+playwright-report/
+
+# Generated
+preview/
+
+# Local tooling (Claude Code session artifacts, not project config)
+.claude/

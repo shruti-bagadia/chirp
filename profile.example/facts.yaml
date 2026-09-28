@@ -1,0 +1,68 @@
+# Every claim has an ID. Tailoring may only select, reorder, and reword these.
+identity:
+  name: Asha Example
+  title: Backend Engineer
+  location: Pune, India
+  years: 2
+  email: asha@example.com
+  phone: "+91 90000 00000"
+  links:
+    linkedin: linkedin.com/in/asha-example
+    github: github.com/asha-example
+
+positioning: I build backend systems that turn slow manual work into fast APIs.
+
+experience:
+  - id: acme
+    company: Acme Analytics
+    role: Backend Developer
+    location: Pune, India
+    dates: Jun 2024 – Present
+    facts:
+      - id: acme.lead
+        text: Own backend services end to end, from requirements through release, working directly with product managers.
+        tags: [ownership]
+      - id: acme.reports
+        title: Reporting Service
+        group: Client – Example Bank
+        text: Built a FastAPI reporting service that cut report generation from 3 hours to 10 minutes.
+        numbers: ["3 hours", "10 minutes"]
+        tools: [Python, FastAPI, PostgreSQL]
+        tags: [backend, performance, fintech]
+      - id: acme.cache
+        title: Orders API
+        group: Client – Example Bank
+        text: Added Redis caching and background workers to the orders API, serving 4 partner teams.
+        numbers: ["4"]
+        tools: [Redis, Celery]
+        tags: [backend, performance]
+      - id: acme.docs
+        title: Document Parser
+        group: In-house
+        text: Built an OCR pipeline that extracts invoice fields with 92% accuracy.
+        numbers: ["92%"]
+        tools: [Python, OCR]
+        tags: [ai, documents]
+
+education:
+  - degree: B.Tech in Computer Science
+    school: Example Institute of Technology
+    dates: 2020 – 2024
+    note: "CGPA: 8.0/10"
+
+recognition:
+  - id: rec.hack
+    text: Finalist at Example Hackathon 2025.
+    numbers: ["2025"]
+
+skills:
+  groups:
+    Languages: [Python, SQL]
+    Frameworks: [FastAPI, Django]
+    AI / ML: [OCR, LLM Integration]
+    Data: [PostgreSQL, Redis]
+    Tools: [Docker, Git, Celery]
+
+never_claim:
+  - team lead
+  - kubernetes

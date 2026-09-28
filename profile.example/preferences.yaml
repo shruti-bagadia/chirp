@@ -1,0 +1,9 @@
+titles_include: [backend, python, software engineer, sde, ai engineer, llm engineer]
+titles_exclude: [frontend, qa, intern, data analyst]
+max_experience_years: 4
+locations:
+  pune_hybrid: preferred
+  remote_india: accepted
+  pune_onsite: flagged
+min_contract_months: 6
+blocked_companies: [Example Current Employer]
