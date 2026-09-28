@@ -62,6 +62,7 @@ class ClaimedJob(BaseModel):
     company: str
     title: str
     url: str
+    apply_url: str
     platform: str
     apply_mode: str
     expected_ctc_lpa: float | None
@@ -124,6 +125,7 @@ def claim(body: ClaimRequest, db: Session = Depends(get_db)) -> ClaimResponse:
                 company=job.company.name,
                 title=job.title,
                 url=job.url,
+                apply_url=job.apply_url or job.url,
                 platform=job.company.platform.value,
                 apply_mode=job.company.apply_mode.value,
                 expected_ctc_lpa=float(job.expected_ctc_lpa) if job.expected_ctc_lpa else None,

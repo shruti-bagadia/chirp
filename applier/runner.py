@@ -11,7 +11,7 @@ import logging
 import tempfile
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from sqlalchemy import select
@@ -41,6 +41,7 @@ from applier.runners.base import Blocked, detect_blocked, fill_form, looks_submi
 log = logging.getLogger("chirp.applier")
 
 RUNNER_CONFIGS = {"greenhouse": greenhouse.CONFIG, "lever": lever.CONFIG, "ashby": ashby.CONFIG}
+LEASE_MINUTES = 15
 
 
 @dataclass
@@ -79,6 +80,8 @@ def _daily_cap_remaining(db: Session, cap: int) -> int:
 def _move(db: Session, job: Job, to: JobStatus, actor: Actor, note: str | None = None) -> None:
     t = check_transition(job.status, to, actor, note)
     job.status, job.status_reason = t.to_status, t.note
+    if to != JobStatus.APPLYING:
+        job.lease_until = None
     db.add(
         JobEvent(
             job_id=job.id,
@@ -131,7 +134,7 @@ def _apply_one(
 
     page = browser.new_page()
     try:
-        page.goto(job.url, timeout=30000, wait_until="domcontentloaded")
+        page.goto(job.apply_url or job.url, timeout=30000, wait_until="domcontentloaded")
         blocked = detect_blocked(page)
         if blocked == "expired":
             _move(db, job, JobStatus.EXPIRED, Actor.APPLIER, "posting closed")
@@ -161,7 +164,12 @@ def _apply_one(
                 )
                 counts.needs_attention += 1
             elif dry_run:
-                pass  # form filled, not submitted, job stays approved (test plan G11)
+                # form filled, not submitted, job stays approved (test plan G11).
+                # Screenshot before releasing so a filled-but-unsubmitted form can
+                # actually be reviewed, same spirit as reading tailored PDFs before
+                # going live (test plan §7).
+                _screenshot(page, storage, job, prefix="dry-run-preview")
+                _move(db, job, JobStatus.APPROVED, Actor.APPLIER, "dry run peek")
             else:
                 submit_form(page, config, dry_run=False)
                 if looks_submitted(page, config):
@@ -218,12 +226,12 @@ def _local_resume_file(storage, path: str | None):
         Path(tmp_path).unlink(missing_ok=True)
 
 
-def _screenshot(page, storage, job: Job) -> str | None:
+def _screenshot(page, storage, job: Job, prefix: str = "confirmations") -> str | None:
     try:
         png = page.screenshot(full_page=True)
     except Exception:
         return None
-    path = f"confirmations/{job.id}.png"
+    path = f"{prefix}/{job.id}.png"
     storage.put(path, png, "image/png")
     return path
 
@@ -282,6 +290,12 @@ def run_apply_once(
             from app.llm.embeddings import LocalEmbeddingProvider
 
             embed_fn = LocalEmbeddingProvider().embed
+
+        lease_until = datetime.now(UTC) + timedelta(minutes=LEASE_MINUTES)
+        for job in jobs:
+            _move(db, job, JobStatus.APPLYING, Actor.APPLIER, "claimed")
+            job.lease_until = lease_until
+        db.commit()
 
         answer_lookup = _answer_lookup_factory(db, embed_fn)
         with browser_factory() as browser:

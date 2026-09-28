@@ -51,7 +51,9 @@ _ALLOWED: dict[tuple[JobStatus, JobStatus], frozenset[Actor]] = {
     (S.APPLYING, S.APPLIED): frozenset({Actor.APPLIER}),
     (S.APPLYING, S.NEEDS_ATTENTION): frozenset({Actor.APPLIER}),
     (S.APPLYING, S.EXPIRED): frozenset({Actor.APPLIER}),
-    (S.APPLYING, S.APPROVED): frozenset({Actor.SYSTEM}),  # lease expired
+    # lease expired (Actor.SYSTEM) or the Applier deliberately releasing a dry-run
+    # claim after peeking at the form without submitting (test plan G11)
+    (S.APPLYING, S.APPROVED): frozenset({Actor.SYSTEM, Actor.APPLIER}),
     (S.NEEDS_ATTENTION, S.APPROVED): frozenset({Actor.YOU}),
     (S.NEEDS_ATTENTION, S.APPLIED): frozenset({Actor.YOU}),  # quick apply done by hand
     (S.NEEDS_ATTENTION, S.REJECTED): frozenset({Actor.YOU}),

@@ -8,12 +8,19 @@ approach, minus even needing a server for this particular piece.
 from __future__ import annotations
 
 import importlib.util
+import urllib.parse
 
 import pytest
 
 from applier.form_mapper import applicant_from_identity
 from applier.runners import ashby, greenhouse
-from applier.runners.base import detect_blocked, fill_form, looks_submitted, submit_form
+from applier.runners.base import (
+    PlatformConfig,
+    detect_blocked,
+    fill_form,
+    looks_submitted,
+    submit_form,
+)
 
 HAS_PLAYWRIGHT = importlib.util.find_spec("playwright") is not None
 
@@ -175,6 +182,57 @@ def test_detect_blocked_recognizes_captcha():
 
 def test_detect_blocked_none_for_normal_form(page):
     assert detect_blocked(page) is None
+
+
+def test_detect_blocked_ignores_recaptcha_css_boilerplate(page):
+    """Real bug: Lever ships `.g-recaptcha`/`.h-captcha-spacing` CSS on every posting
+    page whether or not a challenge is ever rendered. A raw substring match on
+    page.content() flagged every Lever posting as blocked; only an actually-rendered
+    challenge iframe should count."""
+    page.set_content("<style>.g-recaptcha { display: block; }</style><form></form>")
+    assert detect_blocked(page) is None
+
+
+def test_discover_fields_falls_back_into_embedded_iframe(resume_file):
+    """Real bug: some companies embed a platform's application form via an iframe
+    on their own careers page instead of linking to the platform's own hosted
+    board (confirmed live for Greenhouse: Druva's careers page renders the form
+    inside `iframe[src*="job-boards.greenhouse.io/embed/job_app"]`). The generic
+    engine only ever looked at the top-level page, so it found zero fields and
+    dry-run mode silently reported success while filling nothing."""
+    from playwright.sync_api import sync_playwright
+
+    embed_config = PlatformConfig(
+        name="greenhouse-embed",
+        resume_label_hints=greenhouse.CONFIG.resume_label_hints,
+        cover_letter_label_hints=greenhouse.CONFIG.cover_letter_label_hints,
+        submit_selector=greenhouse.CONFIG.submit_selector,
+        confirmation_text_hints=greenhouse.CONFIG.confirmation_text_hints,
+        embed_iframe_hint="data:text/html",
+    )
+    wrapper_html = (
+        '<!DOCTYPE html><html><body><iframe src="data:text/html,'
+        f'{urllib.parse.quote(FORM_HTML)}"></iframe></body></html>'
+    )
+    with sync_playwright() as p:
+        browser = p.chromium.launch(channel="msedge", headless=True)
+        pg = browser.new_page()
+        pg.set_content(wrapper_html)
+        applicant = applicant_from_identity(IDENTITY)
+        outcome = fill_form(
+            pg,
+            embed_config,
+            applicant=applicant,
+            resume_path=resume_file,
+            cover_letter="Dear team, I'd love to join.",
+            answer_lookup=_lookup(
+                {"greatest weakness": "I over-polish details.", "notice period": "15 days"}
+            ),
+        )
+        assert not outcome.unanswered
+        frame = pg.frame_locator('iframe[src*="data:text/html"]')
+        assert frame.locator("#first_name").input_value() == "Asha"
+        browser.close()
 
 
 def test_ashby_config_fills_and_submits(page, resume_file):

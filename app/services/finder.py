@@ -32,6 +32,7 @@ class NewJob:
     company_id: object
     external_id: str
     url: str
+    apply_url: str | None
     canonical_url: str
     dedupe_key: str
     title: str
@@ -129,6 +130,7 @@ def process_postings(
                 company_id=company.id,
                 external_id=p.external_id,
                 url=p.url,
+                apply_url=p.extra.get("apply_url") or None,
                 canonical_url=url,
                 dedupe_key=key,
                 title=p.title,

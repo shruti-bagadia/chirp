@@ -42,6 +42,11 @@ class PlatformConfig:
         "successfully submitted",
     )
     field_label_selector: str = "label"
+    # Some companies embed this platform's application form via an iframe on their
+    # own branded careers page instead of linking straight to the platform's own
+    # hosted board (confirmed for Greenhouse: a company's own domain, iframe
+    # src contains this). None means the form is always in the top-level page.
+    embed_iframe_hint: str | None = None
 
 
 @dataclass
@@ -63,10 +68,21 @@ def detect_blocked(page) -> str | None:
     """Captcha / login wall / closed posting, or None if the page looks like a
     normal application form."""
     try:
+        # An actually-rendered challenge iframe, not a mention anywhere in the page's
+        # HTML: ATS platforms (Lever included) ship recaptcha/hcaptcha CSS and script
+        # boilerplate on every posting page whether or not a challenge is ever shown,
+        # so a raw substring search on page.content() flags nearly every posting.
+        if (
+            page.locator(
+                'iframe[src*="recaptcha"], iframe[src*="hcaptcha"], iframe[title*="challenge"]'
+            ).count()
+            > 0
+        ):
+            return "captcha"
         html = page.content().lower()
     except Exception:
         return None
-    if "recaptcha" in html or "hcaptcha" in html or "verify you are human" in html:
+    if "verify you are human" in html:
         return "captcha"
     if page.locator("input[type=password]").count() > 0:
         return "login"
@@ -82,10 +98,25 @@ def detect_blocked(page) -> str | None:
     return None
 
 
-def _associated_input(page, label):
+def _form_scope(page, config: PlatformConfig):
+    """The right locator root to search for form fields: the page itself, or an
+    embedded iframe when this platform's form isn't in the top-level page (e.g.
+    Greenhouse embedded on a company's own careers page rather than linked
+    directly to job-boards.greenhouse.io — the fields exist, just not where a
+    plain page.locator() call would ever find them)."""
+    if page.locator(config.field_label_selector).count() > 0:
+        return page
+    if config.embed_iframe_hint:
+        frame = page.frame_locator(f'iframe[src*="{config.embed_iframe_hint}"]')
+        if frame.locator(config.field_label_selector).count() > 0:
+            return frame
+    return page
+
+
+def _associated_input(scope, label):
     for_id = label.get_attribute("for")
     if for_id:
-        candidate = page.locator(f"#{for_id}")
+        candidate = scope.locator(f"#{for_id}")
         if candidate.count() > 0:
             return candidate.first
     nested = label.locator("input, textarea, select")
@@ -112,14 +143,15 @@ def _classify(input_el) -> tuple[str, list[str]]:
 
 
 def discover_fields(page, config: PlatformConfig) -> list[DiscoveredField]:
+    scope = _form_scope(page, config)
     fields: list[DiscoveredField] = []
-    labels = page.locator(config.field_label_selector)
+    labels = scope.locator(config.field_label_selector)
     for i in range(labels.count()):
         label = labels.nth(i)
         text = (label.inner_text() or "").strip()
         if not text:
             continue
-        input_el = _associated_input(page, label)
+        input_el = _associated_input(scope, label)
         if input_el is None:
             continue
         kind, options = _classify(input_el)
@@ -202,9 +234,10 @@ def looks_submitted(page, config: PlatformConfig) -> bool:
     """Checks that confirmation text is actually *visible*, not just present
     somewhere in the markup — a hidden confirmation div (shown only after a real
     submit) would otherwise false-positive before anything was submitted."""
+    scope = _form_scope(page, config)
     for hint in config.confirmation_text_hints:
         try:
-            locator = page.get_by_text(hint, exact=False).first
+            locator = scope.get_by_text(hint, exact=False).first
             if locator.count() > 0 and locator.is_visible():
                 return True
         except Exception:
@@ -216,5 +249,5 @@ def submit_form(page, config: PlatformConfig, *, dry_run: bool) -> None:
     """Per docs/10_test_plan.md G11: dry run fills the form and stops there."""
     if dry_run:
         return
-    page.locator(config.submit_selector).first.click()
+    _form_scope(page, config).locator(config.submit_selector).first.click()
     page.wait_for_load_state("networkidle", timeout=15000)

@@ -35,6 +35,7 @@ from app.db.enums import (
     CompanySource,
     CompanyState,
     JobStatus,
+    ManualApplicationSource,
     Pinned,
     Platform,
     RequestSource,
@@ -91,6 +92,11 @@ class Job(IdMixin, TimestampMixin, Base):
     company_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("companies.id"))
     external_id: Mapped[str | None] = mapped_column(String(200))
     url: Mapped[str] = mapped_column(Text)
+    # Some platforms (Lever, Ashby) split the human-facing posting page from the
+    # actual application form; the Applier must navigate here, not `url`, or it
+    # fills a page with no form fields on it. Falls back to `url` when the
+    # platform doesn't have a separate form page (e.g. Greenhouse).
+    apply_url: Mapped[str | None] = mapped_column(Text)
     canonical_url: Mapped[str] = mapped_column(Text, unique=True)
     dedupe_key: Mapped[str] = mapped_column(String(64), unique=True)
     title: Mapped[str] = mapped_column(String(300))
@@ -160,6 +166,30 @@ class TailoredDocument(IdMixin, TimestampMixin, Base):
     prompt_version: Mapped[str | None] = mapped_column(String(40))
 
     job: Mapped[Job] = relationship(back_populates="document")
+
+
+class ManualApplication(IdMixin, Base):
+    """An application to a job Chirp never touched (no board, no connector) —
+    tailored via the manual generator and/or detected from a Gmail confirmation
+    email. No state machine: `got_callback` is the only status Chirp tracks;
+    everything else Shruti manages by hand outside the app.
+    """
+
+    __tablename__ = "manual_applications"
+
+    company: Mapped[str] = mapped_column(String(200))
+    title: Mapped[str] = mapped_column(String(300))
+    applied_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    source: Mapped[ManualApplicationSource] = mapped_column(
+        pg_enum(ManualApplicationSource, "manual_application_source")
+    )
+    gmail_message_id: Mapped[str | None] = mapped_column(String(100), unique=True)
+    posting_url: Mapped[str | None] = mapped_column(Text)
+    resume_pdf_path: Mapped[str | None] = mapped_column(Text)
+    cover_letter: Mapped[str | None] = mapped_column(Text)
+    got_callback: Mapped[bool] = mapped_column(Boolean, default=False)
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class Answer(IdMixin, TimestampMixin, Base):

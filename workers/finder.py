@@ -39,6 +39,7 @@ def _save_jobs(db: Session, new_jobs) -> None:
             company_id=nj.company_id,
             external_id=nj.external_id,
             url=nj.url,
+            apply_url=nj.apply_url,
             canonical_url=nj.canonical_url,
             dedupe_key=nj.dedupe_key,
             title=nj.title,
