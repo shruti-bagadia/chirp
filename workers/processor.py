@@ -63,26 +63,26 @@ def run_process(
     run = start_run(db, RunKind.PROCESS, trigger)
     if run is None:
         return None
-    row = db.get(AppSettings, 1)
-    cfg = row.data if row else DEFAULT_SETTINGS
-    profile = profile or load_profile(db)
-    storage = storage or make_storage(s)
-    if client is None:
-        client = LLMClient(
-            make_provider(s),
-            Redactor(profile.identity),
-            TokenBucket(s.llm_requests_per_minute),
-            DailyBudget(s.llm_daily_request_budget, DbUsage(db, s.llm_provider)),
-        )
     counts = {"processed": 0, "nest": 0, "filtered": 0, "errors": 0, "stopped_for_budget": False}
-    jobs = db.scalars(
-        select(Job)
-        .join(Company)
-        .where(Job.status == JobStatus.DISCOVERED)
-        .order_by(Company.priority_score.desc(), Job.posted_at.desc().nullslast())
-        .limit(cfg["max_jobs_per_run"])
-    ).all()
     try:
+        row = db.get(AppSettings, 1)
+        cfg = row.data if row else DEFAULT_SETTINGS
+        profile = profile or load_profile(db)
+        storage = storage or make_storage(s)
+        if client is None:
+            client = LLMClient(
+                make_provider(s),
+                Redactor(profile.identity),
+                TokenBucket(s.llm_requests_per_minute),
+                DailyBudget(s.llm_daily_request_budget, DbUsage(db, s.llm_provider)),
+            )
+        jobs = db.scalars(
+            select(Job)
+            .join(Company)
+            .where(Job.status == JobStatus.DISCOVERED)
+            .order_by(Company.priority_score.desc(), Job.posted_at.desc().nullslast())
+            .limit(cfg["max_jobs_per_run"])
+        ).all()
         for job in jobs:
             band = TierBand(**cfg["ctc_tiers"][Tier(job.company.tier).value])
             try:
@@ -159,7 +159,8 @@ def run_process(
         raise
     finally:
         run.counts, run.finished_at = counts, datetime.now(UTC)
-        run.llm_requests = client.stats.requests
+        if client is not None:
+            run.llm_requests = client.stats.requests
         db.merge(run)
         db.commit()
     return counts
