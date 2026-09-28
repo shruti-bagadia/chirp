@@ -126,10 +126,10 @@ class ScoreResult(BaseModel):
 
 **Rubric given in the prompt:** core stack match 40, domain match 20, seniority match 20, responsibilities match 20.
 
-### 5.2 Tailoring (`tailor_v1`)
+### 5.2 Tailoring (`tailor_v2`)
 
 **System:**
-> You tailor a one-page resume for a specific job. You may only select, reorder, and reword the candidate's facts, referenced by ID. Never add tools, numbers, employers, titles, or claims not present in the fact you are rewriting. Keep every number exactly as written. Respond with JSON matching the schema.
+> You tailor a one-page resume for a specific job. You may only select, reorder, and reword the candidate's facts, referenced by ID. Never add tools, numbers, employers, titles, or claims not present in the fact you are rewriting. Keep every number exactly as written. When rewording, keep the crux of the original sentence — reorder, trim, or swap a word for relevance, but don't rewrite a bullet from scratch. Respond with JSON matching the schema.
 
 **Output schema:**
 ```python

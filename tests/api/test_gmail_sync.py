@@ -2,6 +2,8 @@
 (the real `GmailClient` needs live OAuth — see app/connectors/gmail_alerts.py).
 """
 
+from datetime import UTC, datetime
+
 import pytest
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import sessionmaker
@@ -9,11 +11,11 @@ from sqlalchemy.orm import sessionmaker
 from app.connectors.gmail_alerts import AlertEmail
 from app.db import models  # noqa: F401
 from app.db.base import Base
-from app.db.enums import CompanyCategory, CompanySource, CompanyState, Tier
-from app.db.models import Company
+from app.db.enums import CompanyCategory, CompanySource, CompanyState, ManualApplicationSource, Tier
+from app.db.models import Company, ManualApplication
 from app.services.companies import add_candidate_from_email, find_by_name
 from tests.conftest import get_test_db_url, with_retries
-from workers.gmail_sync import run_gmail_sync
+from workers.gmail_sync import run_gmail_sync, run_manual_application_sync
 
 
 class FakeGmailClient:
@@ -112,3 +114,29 @@ def test_run_gmail_sync_ignores_unrecognized_links(db):
     counts = run_gmail_sync(db, client)
     assert counts["added_from_links"] == 0
     assert counts["added_from_names"] == 1
+
+
+def test_run_manual_application_sync_adds_applications(db):
+    received = datetime(2026, 9, 20, 9, 30, tzinfo=UTC)
+    html = "<p>Your application for Backend Engineer at Acme Corp. Thanks for applying!</p>"
+    client = FakeGmailClient([AlertEmail("m1", "You applied", html, received_at=received)])
+    counts = run_manual_application_sync(db, client)
+    assert counts == {"emails": 1, "added": 1, "already_known": 0}
+
+    rows = db.scalars(select(ManualApplication)).all()
+    assert len(rows) == 1
+    row = rows[0]
+    assert row.company == "Acme Corp"
+    assert row.title == "Backend Engineer"
+    assert row.source == ManualApplicationSource.GMAIL
+    assert row.gmail_message_id == "m1"
+    assert row.applied_at == received
+
+
+def test_run_manual_application_sync_dedupes_on_message_id(db):
+    html = "<p>Your application for Backend Engineer at Acme Corp. Thanks for applying!</p>"
+    client = FakeGmailClient([AlertEmail("m1", "You applied", html)])
+    run_manual_application_sync(db, client)
+    counts = run_manual_application_sync(db, client)
+    assert counts == {"emails": 1, "added": 0, "already_known": 1}
+    assert len(db.scalars(select(ManualApplication)).all()) == 1

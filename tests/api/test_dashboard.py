@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 import re
+from pathlib import Path
 
 import pytest
+import yaml
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
@@ -19,6 +21,7 @@ from app.db.enums import (
     AnswerType,
     CompanyState,
     JobStatus,
+    ManualApplicationSource,
     Pinned,
     Platform,
     RunKind,
@@ -26,9 +29,15 @@ from app.db.enums import (
     RunTrigger,
     Tier,
 )
-from app.db.models import Answer, Company, Job, Run
+from app.db.models import Answer, Company, Job, ManualApplication, ProfileVersion, Run
 from app.db.session import get_db
 from tests.conftest import get_test_db_url, with_retries
+
+EXAMPLE_FACTS = yaml.safe_load(
+    (Path(__file__).resolve().parents[2] / "profile.example" / "facts.yaml").read_text(
+        encoding="utf-8"
+    )
+)
 
 PASSWORD = "a horse a battery a staple"
 
@@ -407,3 +416,93 @@ def test_company_add_bad_url_shows_error(client, monkeypatch):
     monkeypatch.setattr(db_store.DbStore, "add_company", boom)
     res = client.post("/companies", data={"url": "not a url", "tier": "standard"})
     assert "Couldn&#39;t add" in res.text or "Couldn't add" in res.text
+
+
+# ---------- Tailor (manual/external jobs) ----------
+
+
+@pytest.fixture
+def profile_version(db):
+    row = ProfileVersion(version=1, facts=EXAMPLE_FACTS, note="test")
+    db.add(row)
+    db.commit()
+    return row
+
+
+def test_tailor_generates_resume_and_marks_applied(client, monkeypatch, profile_version):
+    monkeypatch.setenv("LLM_PROVIDER", "mock")
+    get_settings.cache_clear()
+    res = client.post(
+        "/tailor",
+        data={
+            "company": "Acme Bank",
+            "title": "Backend Engineer",
+            "location": "Pune",
+            "mode": "hybrid",
+            "tier": "standard",
+            "posting_url": "https://example.com/jobs/acme-1",
+            "description": "We need a backend engineer with Python and FastAPI experience.",
+        },
+    )
+    get_settings.cache_clear()
+    assert res.status_code == 200
+    assert "Download resume PDF" in res.text
+    assert "I&#39;ve applied" in res.text or "I've applied" in res.text
+
+    m = re.search(r'name="resume_pdf_path" value="([^"]+)"', res.text)
+    assert m and m[1]
+
+    res2 = client.post(
+        "/tailor/applied",
+        data={
+            "company": "Acme Bank",
+            "title": "Backend Engineer",
+            "resume_pdf_path": m[1],
+            "cover_letter": "Dear team, I would love to join Acme Bank.",
+            "posting_url": "https://example.com/jobs/acme-1",
+        },
+    )
+    assert res2.status_code == 200
+    assert "Marked as flown" in res2.text
+
+    res3 = client.get("/flown")
+    assert "Acme Bank" in res3.text and "applied by you" in res3.text
+
+
+def test_tailor_never_filters_on_low_score(client, monkeypatch, profile_version):
+    """threshold=0 for manual jobs: a low fit score is shown, never dropped."""
+    monkeypatch.setenv("LLM_PROVIDER", "mock")
+    get_settings.cache_clear()
+    res = client.post(
+        "/tailor",
+        data={
+            "company": "Random Co",
+            "title": "Deep Sea Welder",
+            "location": "Remote",
+            "mode": "remote",
+            "tier": "standard",
+            "description": "We need someone comfortable welding underwater rigs.",
+        },
+    )
+    get_settings.cache_clear()
+    assert res.status_code == 200
+    assert "Download resume PDF" in res.text
+
+
+def test_flown_merges_manual_applications(client, db):
+    m = ManualApplication(
+        company="Direct Apply Co", title="SDE", source=ManualApplicationSource.DASHBOARD
+    )
+    db.add(m)
+    db.commit()
+    res = client.get("/flown")
+    assert res.status_code == 200
+    assert "Direct Apply Co" in res.text
+
+    detail = client.get(f"/flown/manual:{m.id}")
+    assert detail.status_code == 200 and "Direct Apply Co" in detail.text
+
+    cb = client.post(f"/flown/manual:{m.id}/callback")
+    assert cb.status_code == 200
+    db.refresh(m)
+    assert m.got_callback is True

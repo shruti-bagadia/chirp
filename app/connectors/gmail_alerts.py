@@ -15,6 +15,8 @@ from __future__ import annotations
 import base64
 import re
 from dataclasses import dataclass
+from datetime import datetime
+from email.utils import parsedate_to_datetime
 
 import httpx
 
@@ -35,6 +37,15 @@ _ATS_LINK_RE = re.compile(
 _AT_COMPANY_RE = re.compile(r"\bat\s+([A-Z][\w&.,' -]{1,60}?)(?=\s*(?:[.!]|$|\s-\s|\n))")
 _STOPWORDS = {"the", "a", "an", "your", "new", "this", "click", "here", "home"}
 
+# "your application for <title> [role/position] at <Company>" — best-effort, used only to
+# pull a title out of an application-confirmation email (see `extract_application`); a miss
+# falls back to the email subject, so an unparsed email is never silently dropped.
+_TITLE_FOR_RE = re.compile(
+    r"(?:application (?:for|to)|applying for|applied for)\s+(?:the\s+)?(?:role of\s+)?"
+    r"([A-Za-z][\w&.,'/() -]{2,80}?)(?=\s+(?:role|position)?\s*at\s+[A-Z]|[.!]|\n|$)",
+    re.I,
+)
+
 
 class GmailError(RuntimeError):
     pass
@@ -45,6 +56,7 @@ class AlertEmail:
     message_id: str
     subject: str
     html_body: str
+    received_at: datetime | None = None
 
 
 def extract_ats_links(html_body: str) -> list[str]:
@@ -72,6 +84,22 @@ def extract_company_names(html_body: str) -> list[str]:
         seen.add(key)
         out.append(name)
     return out
+
+
+def extract_application(subject: str, html_body: str) -> tuple[str, str]:
+    """Best-effort (company, title) from a "your application was sent/received" email.
+
+    Precision-favored like `extract_company_names`, but a miss here has no real
+    consequence (unlike a wrongly-added `Company`) — an unparsed email still becomes
+    a `manual_applications` row, just with the raw subject line as its title and
+    "Unknown company" if no company name could be found, rather than being dropped.
+    """
+    text = f"{subject}\n{html_to_text(html_body)}"
+    names = extract_company_names(text)
+    company = names[0] if names else "Unknown company"
+    m = _TITLE_FOR_RE.search(text)
+    title = m.group(1).strip().rstrip(".,-") if m else subject.strip()
+    return company, title or subject.strip()
 
 
 def _b64url_decode(data: str) -> str:
@@ -159,11 +187,18 @@ class GmailClient:
         out = []
         for stub in listing.get("messages", []):
             msg = self._authed_get(f"{API}/messages/{stub['id']}", params={"format": "full"})
+            received_at = None
+            if date_hdr := _header(msg["payload"], "Date"):
+                try:
+                    received_at = parsedate_to_datetime(date_hdr)
+                except (TypeError, ValueError):
+                    received_at = None
             out.append(
                 AlertEmail(
                     message_id=msg["id"],
                     subject=_header(msg["payload"], "Subject"),
                     html_body=_extract_html(msg["payload"]),
+                    received_at=received_at,
                 )
             )
         return out

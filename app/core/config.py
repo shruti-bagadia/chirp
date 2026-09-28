@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     gmail_client_secret: SecretStr = SecretStr("")
     gmail_refresh_token: SecretStr = SecretStr("")
     gmail_label: str = "job-alerts"
+    gmail_applications_label: str = "applications-sent"
 
     @property
     def is_production(self) -> bool:

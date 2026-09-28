@@ -94,6 +94,26 @@ Append-only audit of every state change.
 | profile_version | int | which facts version was used |
 | prompt_version | text | which prompt version was used |
 
+## manual_applications
+Jobs applied to entirely outside Chirp — pasted into the "Tailor an external job" screen
+(`source = dashboard`) and/or detected from a "your application was sent" Gmail confirmation
+(`source = gmail`, see `08_company_registry.md`-style label setup). No state machine: this
+table never goes through `jobs`/`states.check_transition` — `got_callback` is the only status
+Chirp tracks here, and Shruti updates everything else by hand. Shown merged into Flown.
+
+| Field | Type | Notes |
+|---|---|---|
+| company | text | |
+| title | text | |
+| applied_at | timestamptz | from the Gmail date header, or now() for a dashboard entry |
+| source | enum | dashboard, gmail |
+| gmail_message_id | text | nullable, **unique** — dedupes re-sync |
+| posting_url | text | nullable |
+| resume_pdf_path | text | nullable — set when tailored via the dashboard screen |
+| cover_letter | text | nullable |
+| got_callback | bool | default false |
+| notes | text | nullable |
+
 ## answers / question_variants / application_answers
 See `09_answer_bank.md`. `question_variants.embedding` is `vector(384)` (size depends on the embedding model; set in migration) with an HNSW index.
 

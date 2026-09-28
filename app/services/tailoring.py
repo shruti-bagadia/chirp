@@ -8,7 +8,7 @@ from app.profile.model import Profile
 from app.services.fabrication_check import Bullet, TailorDraft
 from app.services.scoring import JobForLLM, truncate_words
 
-PROMPT_VERSION = "tailor_v1"
+PROMPT_VERSION = "tailor_v2"
 
 
 def parse_draft(d: dict) -> TailorDraft:

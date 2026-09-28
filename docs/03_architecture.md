@@ -175,6 +175,8 @@ GITHUB_REPO=shruti-bagadia/chirp
 GMAIL_CLIENT_ID=
 GMAIL_CLIENT_SECRET=
 GMAIL_REFRESH_TOKEN=
+GMAIL_LABEL=job-alerts              # job-alert discovery
+GMAIL_APPLICATIONS_LABEL=applications-sent  # "you applied" confirmation tracking
 ```
 
 Tunable behaviour (thresholds, caps, CTC tiers) lives in the `settings` table, editable from the dashboard, not in env vars.

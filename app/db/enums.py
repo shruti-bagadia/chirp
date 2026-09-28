@@ -16,6 +16,7 @@ __all__ = [
     "CompanyState",
     "JobStatus",
     "LocationFit",
+    "ManualApplicationSource",
     "Pinned",
     "Platform",
     "RequestSource",
@@ -126,3 +127,8 @@ class RequestStatus(StrEnum):
 class RequestSource(StrEnum):
     DASHBOARD = "dashboard"
     CLI = "cli"
+
+
+class ManualApplicationSource(StrEnum):
+    DASHBOARD = "dashboard"
+    GMAIL = "gmail"

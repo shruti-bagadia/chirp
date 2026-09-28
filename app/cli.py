@@ -220,6 +220,32 @@ def _gmail_sync(_: argparse.Namespace) -> int:
     return 0
 
 
+def _gmail_applications_sync(_: argparse.Namespace) -> int:
+    """Reads "your application was sent" confirmation emails and logs each as an
+    applied external job, for tracking only — see docs, "manual applications"."""
+    from app.connectors.gmail_alerts import GmailClient, GmailError
+    from app.core.config import get_settings
+    from workers.gmail_sync import run_manual_application_sync
+
+    s = get_settings()
+    try:
+        client = GmailClient(
+            s.gmail_client_id,
+            s.gmail_client_secret.get_secret_value(),
+            s.gmail_refresh_token.get_secret_value(),
+        )
+    except GmailError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    try:
+        with _db() as db:
+            counts = run_manual_application_sync(db, client, s.gmail_applications_label)
+    finally:
+        client.close()
+    print(f"Applications sync: {counts}")
+    return 0
+
+
 def _profile_push(args: argparse.Namespace) -> int:
     """Upload facts.yaml as a new profile version (workers read it from the database)."""
     from pathlib import Path
@@ -381,6 +407,10 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser(
         "gmail-sync", help="Read job-alert emails and add unseen companies as Candidates"
     ).set_defaults(fn=_gmail_sync)
+    sub.add_parser(
+        "gmail-applications-sync",
+        help="Read application-confirmation emails and log each as an applied external job",
+    ).set_defaults(fn=_gmail_applications_sync)
 
     ap = sub.add_parser("apply", help="Claim approved jobs and run the Applier once")
     ap.add_argument("--live", action="store_true", help="Actually submit (default: dry run)")

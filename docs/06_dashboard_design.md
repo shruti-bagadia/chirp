@@ -175,6 +175,18 @@ Applied history, newest first. Each row: company, role, date, and a "Got a callb
 
 **Tap any application** to open it: an **Open application** button (the posting you applied to), the resume sent, expected CTC given, every answer submitted, the cover letter, and the callback toggle. Useful right before an interview.
 
+Includes jobs Chirp never touched — applied to by hand and marked from the "Tailor an
+external job" screen, or detected from a Gmail application-confirmation email. These rows
+skip whatever doesn't apply (expected CTC, submitted answers) and their row says "applied by
+you" instead of naming a posting Chirp found.
+
+### 3.4b Tailor an external job (under More)
+For a job found outside Chirp entirely — LinkedIn, Naukri, a referral, a company's own
+careers page — that Chirp could never auto-apply to anyway. Paste company, title, location,
+and the job description; get back a tailored resume PDF and cover letter through the same
+tailoring and fabrication check as every other job, just without a fit-score gate (you already
+decided to apply). Nothing is saved until you tap **I've applied**, which logs it to Flown.
+
 ### 3.6 More
 - **Answers:** search, filter by category, tap to edit
 - **Companies:** candidates to approve at the top; active list with priority pill, tier, pin; "Add company" field for a careers URL

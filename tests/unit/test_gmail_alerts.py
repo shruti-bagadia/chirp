@@ -1,5 +1,6 @@
 from app.connectors.gmail_alerts import (
     AlertEmail,
+    extract_application,
     extract_ats_links,
     extract_company_names,
 )
@@ -67,4 +68,28 @@ def test_extract_company_names_dedupes_case_insensitively():
 
 def test_alert_email_dataclass_roundtrip():
     e = AlertEmail(message_id="m1", subject="New jobs", html_body="<p>hi</p>")
-    assert e.message_id == "m1" and e.subject == "New jobs"
+    assert e.message_id == "m1" and e.subject == "New jobs" and e.received_at is None
+
+
+def test_extract_application_finds_title_and_company():
+    company, title = extract_application(
+        "Application received",
+        "<p>Thank you for applying for the Backend Engineer role at Acme Corp.</p>",
+    )
+    assert company == "Acme Corp"
+    assert title == "Backend Engineer"
+
+
+def test_extract_application_without_role_word():
+    company, title = extract_application(
+        "You applied",
+        "<p>Your application for Backend Engineer at Acme Corp. Thanks for applying!</p>",
+    )
+    assert company == "Acme Corp"
+    assert title == "Backend Engineer"
+
+
+def test_extract_application_falls_back_to_subject_when_unparsed():
+    company, title = extract_application("Application Received - Thank You", "<p>Hi there.</p>")
+    assert company == "Unknown company"
+    assert title == "Application Received - Thank You"

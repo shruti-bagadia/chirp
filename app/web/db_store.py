@@ -24,6 +24,7 @@ from app.db.enums import (
     Actor,
     CompanyState,
     JobStatus,
+    ManualApplicationSource,
     Pinned,
     RunKind,
     RunStatus,
@@ -37,6 +38,7 @@ from app.db.models import (
     Company,
     Job,
     JobEvent,
+    ManualApplication,
     Run,
 )
 from app.services import github_dispatch
@@ -49,6 +51,7 @@ from app.services.states import InvalidTransition, check_transition
 log = logging.getLogger("chirp.web.store")
 
 QUESTION_PREFIX = "question:"
+MANUAL_PREFIX = "manual:"
 
 # Which finished run (by id) has already produced a toast, per kind. Module-level
 # because `DbStore` is constructed fresh per request; this just avoids repeating the
@@ -446,25 +449,86 @@ class DbStore:
             answers=[(a.question_text, a.answer_submitted) for a in answers],
         )
 
+    def _manual_query(self):
+        return select(ManualApplication).order_by(ManualApplication.applied_at.desc())
+
+    def _get_manual_row(self, manual_id: str) -> ManualApplication | None:
+        try:
+            return self.db.scalar(
+                select(ManualApplication).where(ManualApplication.id == manual_id)
+            )
+        except Exception:  # malformed UUID string
+            return None
+
+    def _manual_flown_view(self, m: ManualApplication, now: datetime) -> FlownView:
+        return FlownView(
+            id=MANUAL_PREFIX + str(m.id),
+            company=m.company,
+            role=m.title,
+            day=_day_label(m.applied_at, now),
+            callback=bool(m.got_callback),
+            url=m.posting_url or "",
+            expected_ctc="—",
+            via="Gmail" if m.source == ManualApplicationSource.GMAIL else "You",
+            cover_letter=m.cover_letter or "",
+            answers=[],
+        )
+
     @property
     def flown(self) -> list[FlownView]:
         now = utcnow()
-        rows = self.db.scalars(self._flown_query()).all()
-        return [self._flown_view(j, now) for j in rows]
+        jobs = self.db.scalars(self._flown_query()).all()
+        manuals = self.db.scalars(self._manual_query()).all()
+        rows = [(j.applied_at, self._flown_view(j, now)) for j in jobs] + [
+            (m.applied_at, self._manual_flown_view(m, now)) for m in manuals
+        ]
+        rows.sort(key=lambda r: r[0] or datetime.min.replace(tzinfo=UTC), reverse=True)
+        return [view for _, view in rows]
 
     def get_flown(self, flown_id: str) -> FlownView | None:
+        if flown_id.startswith(MANUAL_PREFIX):
+            m = self._get_manual_row(flown_id[len(MANUAL_PREFIX) :])
+            return self._manual_flown_view(m, utcnow()) if m else None
         job = self._get_job_row(flown_id)
         if job is None or job.status != JobStatus.APPLIED:
             return None
         return self._flown_view(job, utcnow())
 
     def toggle_callback(self, flown_id: str) -> FlownView:
+        if flown_id.startswith(MANUAL_PREFIX):
+            m = self._get_manual_row(flown_id[len(MANUAL_PREFIX) :])
+            if m is None:
+                raise KeyError(flown_id)
+            m.got_callback = not bool(m.got_callback)
+            self.db.commit()
+            return self._manual_flown_view(m, utcnow())
         job = self._get_job_row(flown_id)
         if job is None or job.status != JobStatus.APPLIED:
             raise KeyError(flown_id)
         job.got_callback = not bool(job.got_callback)
         self.db.commit()
         return self._flown_view(job, utcnow())
+
+    def add_manual_application(
+        self,
+        *,
+        company: str,
+        title: str,
+        resume_pdf_path: str | None = None,
+        cover_letter: str | None = None,
+        posting_url: str | None = None,
+    ) -> FlownView:
+        m = ManualApplication(
+            company=company,
+            title=title,
+            source=ManualApplicationSource.DASHBOARD,
+            resume_pdf_path=resume_pdf_path,
+            cover_letter=cover_letter,
+            posting_url=posting_url or None,
+        )
+        self.db.add(m)
+        self.db.commit()
+        return self._manual_flown_view(m, utcnow())
 
     # ----- Schedule and limits -----
 

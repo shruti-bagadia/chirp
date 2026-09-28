@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="section-t">Tailor an external job</h2>
+<p class="meta" style="padding:0 16px 8px">For a job you found outside Chirp &mdash; LinkedIn, Naukri, a referral, a company's own careers page. Paste the details below for a tailored resume and cover letter. Nothing is saved until you tap "I've applied".</p>
+<div class="panel">
+  <form method="post" action="/tailor" style="display:flex;flex-direction:column;gap:10px;padding:16px">
+    <input type="text" name="company" placeholder="Company" required value="{{ form.company or '' }}" style="padding:10px;border-radius:12px;border:2px solid var(--line)">
+    <input type="text" name="title" placeholder="Job title" required value="{{ form.title or '' }}" style="padding:10px;border-radius:12px;border:2px solid var(--line)">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input type="text" name="location" placeholder="Location" value="{{ form.location or 'Pune' }}" style="flex:1;min-width:140px;padding:10px;border-radius:12px;border:2px solid var(--line)">
+      <select name="mode" aria-label="Work mode" style="padding:10px;border-radius:12px;border:2px solid var(--line)">
+        {% for m in ["hybrid", "remote", "onsite"] %}
+        <option value="{{ m }}" {{ "selected" if form.mode == m }}>{{ m | capitalize }}</option>
+        {% endfor %}
+      </select>
+      <select name="tier" aria-label="Tier" style="padding:10px;border-radius:12px;border:2px solid var(--line)">
+        {% for t in ["standard", "premium", "services"] %}
+        <option value="{{ t }}" {{ "selected" if form.tier == t }}>{{ t | capitalize }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <input type="url" name="posting_url" placeholder="Posting link (optional)" value="{{ form.posting_url or '' }}" style="padding:10px;border-radius:12px;border:2px solid var(--line)">
+    <textarea name="description" placeholder="Paste the job description" required rows="10" style="padding:10px;border-radius:12px;border:2px solid var(--line);font:inherit">{{ form.description or '' }}</textarea>
+    <button class="btn btn-go" type="submit">Tailor my resume</button>
+  </form>
+</div>
+
+{% if result %}
+<div class="panel" style="margin-top:14px">
+  {% if result.ok %}
+  <div style="display:flex;gap:14px;align-items:center;padding:16px 16px 0"><div class="big">{{ result.score }}</div><p>{{ result.summary }}</p></div>
+  {% if result.gaps %}
+  <h3>Gaps</h3><div class="chips">{% for g in result.gaps %}<span class="chip gap">{{ g }}</span>{% endfor %}</div>
+  {% endif %}
+  <h3>Resume changes</h3><p>{{ result.change_summary }}</p>
+  <p class="meta">Expected CTC {{ result.ctc_range }}</p>
+  <div style="display:flex;gap:18px;margin-top:8px;flex-wrap:wrap;padding:0 16px">
+    <a class="link" href="{{ result.resume_url }}" target="_blank" rel="noopener">Download resume PDF</a>
+    {% if result.posting_url %}<a class="link" href="{{ result.posting_url }}" target="_blank" rel="noopener">Open posting</a>{% endif %}
+  </div>
+  <details class="letter"><summary>Read cover letter</summary><p>{{ result.cover_letter }}</p></details>
+  <div class="copyrow"><div><div class="k">Cover letter</div><div class="v">Ready to paste</div></div><button class="btn btn-soft" data-copy="{{ result.cover_letter }}">Copy</button></div>
+  <div id="tailor-applied" class="sheet-actions">
+    <form hx-post="/tailor/applied" hx-target="#tailor-applied" hx-swap="innerHTML">
+      <input type="hidden" name="company" value="{{ result.company }}">
+      <input type="hidden" name="title" value="{{ result.title }}">
+      <input type="hidden" name="resume_pdf_path" value="{{ result.resume_pdf_path }}">
+      <input type="hidden" name="cover_letter" value="{{ result.cover_letter }}">
+      <input type="hidden" name="posting_url" value="{{ result.posting_url }}">
+      <button class="btn btn-go" type="submit">I've applied</button>
+    </form>
+  </div>
+  {% else %}
+  <p class="err" style="padding:16px">{{ result.reason }}</p>
+  {% if result.fabrication_failures %}
+  <ul style="padding:0 16px 16px">{% for f in result.fabrication_failures %}<li class="err">{{ f }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

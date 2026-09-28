@@ -3,17 +3,31 @@
 from __future__ import annotations
 
 import json
+import uuid
 from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.db.models import ProfileVersion
 from app.db.session import get_db
+from app.llm.base import BudgetExhausted
+from app.llm.client import LLMClient
+from app.llm.factory import make_provider
+from app.llm.pii import Redactor
+from app.llm.ratelimit import DailyBudget, TokenBucket
+from app.llm.usage_db import DbUsage
+from app.profile.model import Profile
+from app.services import scoring
+from app.services.ctc import DEFAULT_BANDS, Tier
+from app.services.processor import process_job
 from app.services.schedule import ScheduleError
+from app.services.states import JobStatus
 from app.storage import LocalStorage, make_storage
 from app.web.auth import is_authed, require_csrf_on_mutation, require_login
 from app.web.auth import login as do_login
@@ -241,6 +255,124 @@ def file_download(path: str):
     if not full.is_file():
         raise HTTPException(404, "Not found")
     return FileResponse(full, media_type="application/pdf", filename=Path(path).name)
+
+
+# ---------- Tailor (manual/external jobs, no board, no connector) ----------
+
+
+def _load_profile(db: Session) -> Profile:
+    row = db.scalar(select(ProfileVersion).order_by(ProfileVersion.version.desc()))
+    if row is not None:
+        return Profile.from_dict(row.facts, version=row.version)
+    return Profile.load("profile/facts.yaml")
+
+
+@router.get("/tailor", response_class=HTMLResponse)
+def tailor_form(request: Request, store: DbStore = Depends(get_store)):
+    ctx = {**base_ctx(store, utcnow(), "more", request), "form": {}, "result": None}
+    return render(request, "tailor.html", ctx)
+
+
+@router.post("/tailor", response_class=HTMLResponse)
+def tailor_submit(
+    request: Request,
+    company: str = Form(...),
+    title: str = Form(...),
+    location: str = Form("Pune"),
+    mode: str = Form("hybrid"),
+    tier: str = Form("standard"),
+    posting_url: str = Form(""),
+    description: str = Form(...),
+    store: DbStore = Depends(get_store),
+):
+    form = {
+        "company": company,
+        "title": title,
+        "location": location,
+        "mode": mode,
+        "tier": tier,
+        "posting_url": posting_url,
+        "description": description,
+    }
+    s = get_settings()
+    profile = _load_profile(store.db)
+    client = LLMClient(
+        make_provider(s),
+        Redactor(profile.identity),
+        TokenBucket(s.llm_requests_per_minute),
+        DailyBudget(s.llm_daily_request_budget, DbUsage(store.db, s.llm_provider)),
+    )
+    job = scoring.JobForLLM(title, company, location, mode, description)
+    band = DEFAULT_BANDS[Tier(tier)]
+    ctx = {**base_ctx(store, utcnow(), "more", request), "form": form}
+    try:
+        # threshold=0: she already decided to apply by pasting this job, so a low
+        # fit score is shown for information only and never drops the job.
+        outcome = process_job(job, profile=profile, client=client, band=band, threshold=0)
+    except BudgetExhausted:
+        ctx["result"] = {
+            "ok": False,
+            "reason": "Today's LLM budget is used up. Try again tomorrow.",
+        }
+        return render(request, "tailor.html", ctx)
+
+    result: dict = {
+        "score": outcome.final_score,
+        "summary": outcome.score.summary if outcome.score else "",
+        "gaps": (outcome.score.gaps if outcome.score else []),
+    }
+    if outcome.status == JobStatus.PENDING_REVIEW and outcome.resume:
+        storage = make_storage(s)
+        path = f"manual/{uuid.uuid4()}.pdf"
+        storage.put(path, outcome.resume.pdf)
+        result.update(
+            {
+                "ok": True,
+                "company": company,
+                "title": title,
+                "posting_url": posting_url,
+                "resume_pdf_path": path,
+                "resume_url": storage.signed_url(path),
+                "cover_letter": outcome.cover_letter,
+                "change_summary": outcome.resume.draft.change_summary,
+                "ctc_range": outcome.ctc_range,
+            }
+        )
+    else:
+        result.update(
+            {
+                "ok": False,
+                "reason": outcome.reason,
+                "fabrication_failures": outcome.fabrication_failures,
+            }
+        )
+    ctx["result"] = result
+    return render(request, "tailor.html", ctx)
+
+
+@router.post("/tailor/applied", response_class=HTMLResponse)
+def tailor_applied(
+    request: Request,
+    company: str = Form(...),
+    title: str = Form(...),
+    resume_pdf_path: str = Form(""),
+    cover_letter: str = Form(""),
+    posting_url: str = Form(""),
+    store: DbStore = Depends(get_store),
+):
+    store.add_manual_application(
+        company=company,
+        title=title,
+        resume_pdf_path=resume_pdf_path or None,
+        cover_letter=cover_letter or None,
+        posting_url=posting_url or None,
+    )
+    return render(
+        request,
+        "partials/_tailor_applied.html",
+        {"company": company},
+        {"chirp:celebrate": True, "chirp:toast": f"{company} marked as flown."},
+    )
 
 
 # ---------- Hands ----------
