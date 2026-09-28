@@ -768,11 +768,20 @@ def _run_find_and_process(sessionmaker_) -> None:
 
     with sessionmaker_() as db:
         fetcher = HttpFetcher()
+        run, crashed = None, False
         try:
             run = run_find(db, fetcher, trigger=RunTrigger.MANUAL)
+        except Exception:
+            # run_find already recorded status=FAILED on the run row itself and
+            # rolled back only its own in-flight transaction — companies it had
+            # already committed before crashing are still saved. Still attempt
+            # run_process below so those don't sit unscored just because a later
+            # company in the same scan failed.
+            crashed = True
+            log.exception("find run failed partway through")
         finally:
             fetcher.close()
-        if run is not None:
+        if run is not None or crashed:
             try:
                 run_process(db, trigger=RunTrigger.MANUAL)
             except Exception:

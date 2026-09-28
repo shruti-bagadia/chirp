@@ -28,6 +28,10 @@ def run_migrations_online() -> None:
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        # Same pooler incompatibility as app/db/session.py — disable psycopg3's
+        # auto-prepared statements so migrations don't intermittently fail behind
+        # Supabase's transaction-mode pooler.
+        connect_args={"prepare_threshold": None},
     )
     with connectable.connect() as connection:
         connection.exec_driver_sql("CREATE EXTENSION IF NOT EXISTS vector")

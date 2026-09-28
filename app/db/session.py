@@ -14,7 +14,19 @@ from app.core.config import get_settings
 
 @lru_cache
 def get_engine() -> Engine:
-    return create_engine(get_settings().database_url, pool_pre_ping=True, pool_size=5)
+    return create_engine(
+        get_settings().database_url,
+        pool_pre_ping=True,
+        pool_size=5,
+        # Supabase's pooler (Supavisor, transaction mode) hands each logical
+        # connection off across different backend server connections, so a
+        # server-side prepared statement from one can collide with another —
+        # psycopg3's own auto-preparation (default: after 5 uses of a similar
+        # statement) then fails with "prepared statement already exists".
+        # Disabling it is the standard fix for psycopg3 behind a transaction
+        # pooler; harmless against a direct (non-pooled) connection too.
+        connect_args={"prepare_threshold": None},
+    )
 
 
 @lru_cache
