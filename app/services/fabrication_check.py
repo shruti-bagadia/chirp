@@ -45,8 +45,26 @@ def _norm(term: str) -> str:
     return ALIASES.get(t, t)
 
 
+# These tech terms double as ordinary English words ("express my interest", "go
+# above and beyond", "won't let my skills rust", "spring into action") and show up
+# in LLM-written prose (summaries, cover letters) far more than in terse bullet
+# text. Case-insensitive matching flagged real cover letters as fabricating a
+# tool from a sentence that never meant the tech term at all. Match these ones
+# case-sensitively instead — genuine tech mentions are reliably capitalized
+# ("Express.js", "Go services"), ordinary use in a sentence usually isn't.
+_CASE_SENSITIVE_TERMS = frozenset({"Go", "Rust", "Spring", "Express"})
+
 _TERM_PATTERNS = sorted(
-    ((t, re.compile(r"(?<![\w+#.])" + re.escape(t) + r"(?![\w+#])", re.I)) for t in TECH_TERMS),
+    (
+        (
+            t,
+            re.compile(
+                r"(?<![\w+#.])" + re.escape(t) + r"(?![\w+#])",
+                re.I if t not in _CASE_SENSITIVE_TERMS else 0,
+            ),
+        )
+        for t in TECH_TERMS
+    ),
     key=lambda x: -len(x[0]),
 )
 

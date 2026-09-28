@@ -111,3 +111,20 @@ def test_other_employer_named_blocked():
     d = draft(cover_letter="I previously worked at Mastercard on payments.")
     assert any("mastercard" in f for f in check(d, PROFILE, "Globex").failures)
     assert check(draft(cover_letter="I'd love to join Mastercard."), PROFILE, "Mastercard").passed
+
+
+def test_ordinary_english_use_of_ambiguous_tech_words_not_flagged():
+    """ "Express", "Go", "Rust", "Spring" double as ordinary English words. Lowercase,
+    sentence use shouldn't be mistaken for a claimed tech skill (real bug: a Gemini
+    cover letter using "express my interest" got rejected as fabricating Express.js)."""
+    assert tools_in("I'd love to express my interest in this role.") == set()
+    assert tools_in("I always go the extra mile for my team.") == set()
+    assert tools_in("I won't let my skills rust after this project.") == set()
+    assert tools_in("I'm ready to spring into action on day one.") == set()
+
+
+def test_capitalized_ambiguous_tech_words_still_caught():
+    assert tools_in("Built the API in Express and deployed it.") == {"express"}
+    assert tools_in("Wrote the service in Go for performance.") == {"go"}
+    assert tools_in("Migrated the backend to Rust.") == {"rust"}
+    assert tools_in("Used Spring to wire up dependency injection.") == {"spring"}

@@ -17,6 +17,14 @@ def build_request(system: str, user: str, max_output_tokens: int, temperature: f
             "responseMimeType": "application/json",
             "temperature": temperature,
             "maxOutputTokens": max_output_tokens,
+            # 2.5 Flash "thinks" before answering by default, and those reasoning
+            # tokens are drawn from the same maxOutputTokens budget — on a real
+            # (long) scoring/tailoring prompt this can consume the whole budget
+            # before any JSON is emitted, leaving `text` empty. This is a plain
+            # structured-output task, not something that benefits from
+            # chain-of-thought, so disable it: faster, ~5x fewer tokens per call
+            # (matters for the free-tier daily budget), and no more truncation.
+            "thinkingConfig": {"thinkingBudget": 0},
         },
     }
 
