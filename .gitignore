@@ -2,7 +2,7 @@
 .env
 .env.*
 !.env.example
-profile/
+/profile/
 *.pdf
 
 # Python
