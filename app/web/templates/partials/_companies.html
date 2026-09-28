@@ -1,41 +1,45 @@
 <h2 class="section-t">Companies</h2>
 <div class="panel">
   {% if candidates %}
-  <div class="sub-t">Candidates to approve ({{ candidates | length }})</div>
-  {% for c in candidates %}
-  <div class="card">
-    <div class="info">
-      <div class="title">{{ c.name }}</div>
-      <div class="meta">{{ c.platform }}{% if c.careers_url %} · <a class="link" href="{{ c.careers_url }}" target="_blank" rel="noopener" style="font-size:14px">careers page ↗</a>{% endif %}</div>
+  <details class="letter" open>
+    <summary class="sub-t" style="padding:12px 16px 4px">Candidates to approve ({{ candidates | length }}) ▾</summary>
+    {% for c in candidates %}
+    <div class="card">
+      <div class="info">
+        <div class="title">{{ c.name }}</div>
+        <div class="meta">{{ c.platform }}{% if c.careers_url %} · <a class="link" href="{{ c.careers_url }}" target="_blank" rel="noopener" style="font-size:14px">careers page ↗</a>{% endif %}</div>
+      </div>
+      <form hx-post="/companies/{{ c.id }}/approve" hx-target="#companies" style="display:flex;gap:6px;align-items:center">
+        <select name="tier" aria-label="Tier for {{ c.name }}">
+          <option value="premium" {{ "selected" if c.tier == "premium" }}>Premium</option>
+          <option value="standard" {{ "selected" if c.tier == "standard" }}>Standard</option>
+          <option value="services" {{ "selected" if c.tier == "services" }}>Services</option>
+        </select>
+        <button class="btn btn-go" type="submit">Approve</button>
+      </form>
+      <button class="btn btn-let" hx-post="/companies/{{ c.id }}/block" hx-target="#companies">Block</button>
     </div>
-    <form hx-post="/companies/{{ c.id }}/approve" hx-target="#companies" style="display:flex;gap:6px;align-items:center">
-      <select name="tier" aria-label="Tier for {{ c.name }}">
-        <option value="premium" {{ "selected" if c.tier == "premium" }}>Premium</option>
-        <option value="standard" {{ "selected" if c.tier == "standard" }}>Standard</option>
-        <option value="services" {{ "selected" if c.tier == "services" }}>Services</option>
-      </select>
-      <button class="btn btn-go" type="submit">Approve</button>
-    </form>
-    <button class="btn btn-let" hx-post="/companies/{{ c.id }}/block" hx-target="#companies">Block</button>
-  </div>
-  {% endfor %}
+    {% endfor %}
+  </details>
   {% endif %}
 
-  <div class="sub-t">Active ({{ active | length }})</div>
-  {% for c in active %}
-  <div class="card">
-    <div class="info">
-      <div class="title">{{ c.name }}</div>
-      <div class="meta">{{ c.platform }} · {{ c.tier | capitalize }} · priority {{ c.priority_score }}</div>
+  <details class="letter">
+    <summary class="sub-t" style="padding:12px 16px 4px">Active ({{ active | length }}) ▾</summary>
+    {% for c in active %}
+    <div class="card">
+      <div class="info">
+        <div class="title">{{ c.name }}</div>
+        <div class="meta">{{ c.platform }} · {{ c.tier | capitalize }} · priority {{ c.priority_score }}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        {% for p in ["high", "none", "low"] %}
+        <button class="day" aria-pressed="{{ 'true' if c.pinned == p else 'false' }}" title="Pin {{ p }}"
+          hx-post="/companies/{{ c.id }}/pin" hx-vals='{"pinned": "{{ p }}"}' hx-target="#companies">{{ p[0] | upper }}</button>
+        {% endfor %}
+      </div>
     </div>
-    <div style="display:flex;gap:6px">
-      {% for p in ["high", "none", "low"] %}
-      <button class="day" aria-pressed="{{ 'true' if c.pinned == p else 'false' }}" title="Pin {{ p }}"
-        hx-post="/companies/{{ c.id }}/pin" hx-vals='{"pinned": "{{ p }}"}' hx-target="#companies">{{ p[0] | upper }}</button>
-      {% endfor %}
-    </div>
-  </div>
-  {% endfor %}
+    {% endfor %}
+  </details>
 
   <div class="sub-t">Add a company</div>
   <form hx-post="/companies" hx-target="#companies" style="display:flex;gap:8px;padding:0 16px 16px;flex-wrap:wrap">

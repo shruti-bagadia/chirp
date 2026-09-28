@@ -5,14 +5,17 @@
   {% endif %}
   {% set cats = answers | map(attribute="category") | unique | list %}
   {% for cat in cats %}
-  <div class="sub-t">{{ cat | capitalize }}</div>
-  {% for a in answers if a.category == cat %}
-  <div class="card">
-    <button type="button" class="card-open" hx-get="/answers/{{ a.id }}" hx-target="#sheet-body" aria-label="Edit answer to {{ a.question }}">
-      <div class="title">{{ a.question }}</div>
-      <div class="meta">{{ a.answer[:80] }}{{ "…" if a.answer | length > 80 else "" }}</div>
-    </button>
-  </div>
-  {% endfor %}
+  {% set cat_answers = answers | selectattr("category", "equalto", cat) | list %}
+  <details class="letter" {{ "open" if loop.first else "" }}>
+    <summary class="sub-t" style="padding:12px 16px 4px">{{ cat | capitalize }} ({{ cat_answers | length }}) ▾</summary>
+    {% for a in cat_answers %}
+    <div class="card">
+      <button type="button" class="card-open" hx-get="/answers/{{ a.id }}" hx-target="#sheet-body" aria-label="Edit answer to {{ a.question }}">
+        <div class="title">{{ a.question }}</div>
+        <div class="meta">{{ a.answer[:80] }}{{ "…" if a.answer | length > 80 else "" }}</div>
+      </button>
+    </div>
+    {% endfor %}
+  </details>
   {% endfor %}
 </div>
