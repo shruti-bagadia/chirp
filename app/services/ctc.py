@@ -25,9 +25,9 @@ class TierBand:
 
 
 DEFAULT_BANDS: dict[Tier, TierBand] = {
-    Tier.PREMIUM: TierBand(min=18, max=22, single=20, floor=15),
-    Tier.STANDARD: TierBand(min=15, max=17, single=16, floor=15),
-    Tier.SERVICES: TierBand(min=14, max=16, single=15, floor=14),
+    Tier.PREMIUM: TierBand(min=18, max=22, single=20, floor=16),
+    Tier.STANDARD: TierBand(min=16, max=17, single=16, floor=16),
+    Tier.SERVICES: TierBand(min=16, max=18, single=17, floor=16),
 }
 
 

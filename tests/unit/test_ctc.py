@@ -7,8 +7,8 @@ P, S, V = DEFAULT_BANDS[Tier.PREMIUM], DEFAULT_BANDS[Tier.STANDARD], DEFAULT_BAN
 
 def test_no_salary_listed_uses_tier():
     assert decide_ctc(P).single == 20 and decide_ctc(P).range_text == "18–22 LPA"
-    assert decide_ctc(S).single == 16 and decide_ctc(S).range_text == "15–17 LPA"
-    assert decide_ctc(V).single == 15 and decide_ctc(V).range_text == "14–16 LPA"
+    assert decide_ctc(S).single == 16 and decide_ctc(S).range_text == "16–17 LPA"
+    assert decide_ctc(V).single == 17 and decide_ctc(V).range_text == "16–18 LPA"
 
 
 def test_below_floor_is_skipped():
@@ -16,9 +16,9 @@ def test_below_floor_is_skipped():
     assert d.action is CtcAction.SKIP and d.single is None
 
 
-def test_services_floor_is_14():
-    assert decide_ctc(V, 12, 14).action is CtcAction.USE
-    assert decide_ctc(V, 10, 13).action is CtcAction.SKIP
+def test_services_floor_is_16():
+    assert decide_ctc(V, 14, 16).action is CtcAction.USE
+    assert decide_ctc(V, 10, 15).action is CtcAction.SKIP
 
 
 def test_between_floor_and_tier_min_is_flagged():

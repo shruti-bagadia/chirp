@@ -116,7 +116,7 @@ def test_strong_fit_reaches_the_nest():
     r = run(client_with(SCORE, TAILOR))
     assert r.status is JobStatus.PENDING_REVIEW
     assert r.final_score == 85  # +5 hybrid
-    assert r.expected_ctc == 16 and r.ctc_range == "15–17 LPA"
+    assert r.expected_ctc == 16 and r.ctc_range == "16–17 LPA"
     assert "Globex team" in r.cover_letter and "[Company]" not in r.cover_letter
 
 

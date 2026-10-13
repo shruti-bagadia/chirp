@@ -71,8 +71,8 @@
 | B06 | Remote, India | Passes | P0 |
 | B07 | Pune onsite | Passes, flagged | P0 |
 | B08 | 3-month contract | `filtered_out` | P0 |
-| B09 | Listed salary 8–12 LPA at a Standard company | `filtered_out` (below floor 15) | P0 |
-| B10 | Listed salary 12–15 LPA at a Services company | Passes (floor 14) | P0 |
+| B09 | Listed salary 8–12 LPA at a Standard company | `filtered_out` (below floor 16) | P0 |
+| B10 | Listed salary 16–18 LPA at a Services company | Passes (floor 16) | P0 |
 | B11 | No salary listed | Passes | P0 |
 | B12 | Posted 10 days ago | `filtered_out` | P0 |
 | B13 | Internship | `filtered_out` | P0 |

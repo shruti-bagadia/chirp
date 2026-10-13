@@ -62,7 +62,7 @@ class DemoFlown:
     day: str
     callback: bool = False
     url: str = ""
-    expected_ctc: str = "15–17 LPA"
+    expected_ctc: str = "16–17 LPA"
     via: str = "Chirp"  # Chirp (applied automatically) or You (quick apply)
 
     @property

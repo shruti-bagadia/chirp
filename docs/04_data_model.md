@@ -136,9 +136,9 @@ Single row, jsonb, edited from the dashboard.
   "max_jobs_per_run": 30,
   "daily_apply_cap": 8,
   "ctc_tiers": {
-    "premium":  {"min": 18, "max": 22, "single": 20, "floor": 15},
-    "standard": {"min": 15, "max": 17, "single": 16, "floor": 15},
-    "services": {"min": 14, "max": 16, "single": 15, "floor": 14}
+    "premium":  {"min": 18, "max": 22, "single": 20, "floor": 16},
+    "standard": {"min": 16, "max": 17, "single": 16, "floor": 16},
+    "services": {"min": 16, "max": 18, "single": 17, "floor": 16}
   },
   "match_thresholds": {"strong": 0.85, "possible": 0.70},
   "dormant_after_days": 60,
