@@ -593,6 +593,7 @@ class DbStore:
         the button click gets an instant "already running" instead of always trying).
         """
         if self.is_running(kind, now):
+            log.info("%s already running; button press ignored", kind)
             return False
         if kind == "find":
             settings = get_settings()
@@ -602,14 +603,20 @@ class DbStore:
                 # running the scrape + LLM calls + PDF compiles on the web dyno.
                 try:
                     github_dispatch.dispatch_find(settings)
+                    log.info("dispatched find.yml on GitHub Actions")
                     return True
                 except github_dispatch.DispatchError:
                     log.exception("GitHub dispatch failed; falling back to a local run")
+            else:
+                log.info(
+                    "GITHUB_DISPATCH_TOKEN/GITHUB_REPO not set; running find in-process instead"
+                )
         # Bind the background thread's own session to the SAME engine this request's
         # session uses (not the globally-cached `get_sessionmaker()`), so tests that
         # override `get_db` with a test database don't have a background thread
         # quietly go off and hit the real dev database (and real company APIs).
         sessionmaker_ = sessionmaker(bind=self.db.get_bind(), expire_on_commit=False)
+        log.info("starting local %s thread", kind)
         if kind == "find":
             threading.Thread(
                 target=_run_find_and_process, args=(sessionmaker_,), daemon=True
@@ -762,43 +769,58 @@ class DbStore:
 
 
 def _run_find_and_process(sessionmaker_) -> None:
-    from app.connectors.http import HttpFetcher
-    from workers.finder import run_find
-    from workers.processor import run_process
+    # Runs on a daemon thread with no caller left to report back to, so this is the last
+    # line of defense: anything that escapes this function is only visible as a raw
+    # traceback from Python's default thread excepthook, outside our JSON log format and
+    # easy to miss. Catch everything here, including session/fetcher setup itself, not
+    # just the known failure points inside run_find/run_process.
+    log.info("local find+process thread starting")
+    try:
+        from app.connectors.http import HttpFetcher
+        from workers.finder import run_find
+        from workers.processor import run_process
 
-    with sessionmaker_() as db:
-        fetcher = HttpFetcher()
-        run, crashed = None, False
-        try:
-            run = run_find(db, fetcher, trigger=RunTrigger.MANUAL)
-        except Exception:
-            # run_find already recorded status=FAILED on the run row itself and
-            # rolled back only its own in-flight transaction — companies it had
-            # already committed before crashing are still saved. Still attempt
-            # run_process below so those don't sit unscored just because a later
-            # company in the same scan failed.
-            crashed = True
-            log.exception("find run failed partway through")
-        finally:
-            fetcher.close()
-        if run is not None or crashed:
+        with sessionmaker_() as db:
+            fetcher = HttpFetcher()
+            run, crashed = None, False
             try:
-                run_process(db, trigger=RunTrigger.MANUAL)
+                run = run_find(db, fetcher, trigger=RunTrigger.MANUAL)
             except Exception:
-                log.exception("process run failed after manual find")
+                # run_find already recorded status=FAILED on the run row itself and
+                # rolled back only its own in-flight transaction — companies it had
+                # already committed before crashing are still saved. Still attempt
+                # run_process below so those don't sit unscored just because a later
+                # company in the same scan failed.
+                crashed = True
+                log.exception("find run failed partway through")
+            finally:
+                fetcher.close()
+            if run is not None or crashed:
+                try:
+                    run_process(db, trigger=RunTrigger.MANUAL)
+                except Exception:
+                    log.exception("process run failed after manual find")
+        log.info("local find+process thread finished")
+    except Exception:
+        log.exception("local find+process thread crashed before a run row was even created")
 
 
 def _run_apply(sessionmaker_) -> None:
+    log.info("local apply thread starting")
     try:
         from applier.runner import run_apply_once
     except ImportError:
         log.warning("Fly now pressed, but the Applier isn't installed yet.")
         return
-    with sessionmaker_() as db:
-        try:
-            run_apply_once(db, dry_run=get_settings().apply_dry_run)
-        except Exception:
-            log.exception("apply run failed")
+    try:
+        with sessionmaker_() as db:
+            try:
+                run_apply_once(db, dry_run=get_settings().apply_dry_run)
+            except Exception:
+                log.exception("apply run failed")
+        log.info("local apply thread finished")
+    except Exception:
+        log.exception("local apply thread crashed before a run row was even created")
 
 
 def get_store(db: Session) -> DbStore:
