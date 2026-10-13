@@ -30,6 +30,11 @@ from app.db.enums import ApplyMode, Platform
         ("https://careers.smartrecruiters.com/AcmeCorp", Platform.SMARTRECRUITERS, "AcmeCorp"),
         ("https://acme.darwinbox.in/ms/candidate/careers", Platform.DARWINBOX, None),
         ("https://fa-abcd.oraclecloud.com/hcmUI/CandidateExperience", Platform.ORACLE, None),
+        (
+            "https://fa-abcd.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/requisitions",
+            Platform.ORACLE,
+            "fa-abcd.oraclecloud.com/CX_1",
+        ),
     ],
 )
 def test_from_url(url, platform, board):

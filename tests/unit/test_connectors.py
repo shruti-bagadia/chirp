@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from app.connectors import ashby, greenhouse, lever, workday
+from app.connectors import ashby, greenhouse, lever, oracle, workday
 from app.connectors.base import ConnectorError, html_to_text, inr_to_lpa, salary_from_text
 from app.connectors.registry import connector_for
 
@@ -156,6 +156,65 @@ def test_workday_relative_dates():
     assert workday.posted_at_from_text("Posted 30+ Days Ago", now) == now - timedelta(days=30)
     assert workday.posted_at_from_text("", now) is None
     assert workday.posted_at_from_text("Posted sometime", now) is None
+
+
+class PagedGetFakeFetcher(FakeFetcher):
+    """Serves Oracle pages in order, one per GET."""
+
+    def __init__(self, pages):
+        super().__init__(None)
+        self.pages = list(pages)
+
+    def get_json(self, url, params=None):
+        self.calls.append((url, dict(params or {})))
+        return self.pages.pop(0) if self.pages else {"items": [{"TotalJobsCount": 0}]}
+
+
+def test_oracle_board_id_parsing_builds_api_url():
+    assert oracle.parse_board_id("iaaviz.fa.ocs.oraclecloud.com/CX_1") == (
+        "iaaviz.fa.ocs.oraclecloud.com",
+        "CX_1",
+    )
+    assert oracle.api_url("iaaviz.fa.ocs.oraclecloud.com") == (
+        "https://iaaviz.fa.ocs.oraclecloud.com/hcmRestApi/resources/latest/"
+        "recruitingCEJobRequisitions"
+    )
+    for bad in ["iaaviz.fa.ocs.oraclecloud.com", "", "/CX_1"]:
+        with pytest.raises(ConnectorError):
+            oracle.parse_board_id(bad)
+
+
+def test_oracle_parse_fields():
+    page = load("oracle_jobs.json")["pages"][0]
+    jobs = oracle.parse(page)
+    assert len(jobs) == 3
+    pune = jobs[0]
+    assert pune.title == "Backend Engineer - Python" and pune.location == "Pune, MH, India"
+    assert pune.workplace == "hybrid"
+    assert "REST APIs" in pune.description and "backend experience" in pune.description
+    assert pune.posted_at.isoformat().startswith("2026-09-20")
+
+    remote = jobs[1]
+    assert remote.workplace == "remote"
+    assert remote.location == "India, Mumbai, MH, India"  # primary + secondary locations joined
+
+    unplaced = jobs[2]
+    assert unplaced.workplace is None  # Oracle left WorkplaceType blank
+
+
+def test_oracle_fetch_fills_in_job_urls_and_paginates():
+    pages = load("oracle_jobs.json")["pages"]
+    f = PagedGetFakeFetcher(pages)
+    jobs = connector_for("oracle").fetch("iaaviz.fa.ocs.oraclecloud.com/CX_1", f)
+    assert len(jobs) == 3 and len(f.calls) == 1  # short page (3 < 25) stops after page 1
+    url, params = f.calls[0]
+    assert url.endswith("/recruitingCEJobRequisitions")
+    assert (
+        params["finder"] == "findReqs;siteNumber=CX_1,limit=25,offset=0,sortBy=POSTING_DATES_DESC"
+    )
+    assert jobs[0].url == (
+        "https://iaaviz.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/job/7001"
+    )
 
 
 def test_workday_search_text_is_configurable_and_defaults_empty():

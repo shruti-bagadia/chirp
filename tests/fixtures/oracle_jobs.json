@@ -1,0 +1,45 @@
+{
+  "pages": [
+    {
+      "items": [
+        {
+          "TotalJobsCount": 3,
+          "Offset": 0,
+          "Limit": 25,
+          "requisitionList": [
+            {
+              "Id": "7001",
+              "Title": "Backend Engineer - Python",
+              "PostedDate": "2026-09-20",
+              "PrimaryLocation": "Pune, MH, India",
+              "WorkplaceType": "Hybrid",
+              "ExternalQualificationsStr": "3-5 years of Python backend experience.",
+              "ExternalResponsibilitiesStr": "Build and own REST APIs on FastAPI.",
+              "secondaryLocations": []
+            },
+            {
+              "Id": "7002",
+              "Title": "AI Engineer, Contract Intelligence",
+              "PostedDate": "2026-09-22",
+              "PrimaryLocation": "India",
+              "WorkplaceType": "Remote",
+              "ExternalQualificationsStr": "Experience with LLM-based extraction pipelines.",
+              "ExternalResponsibilitiesStr": "",
+              "secondaryLocations": [{"Name": "Mumbai, MH, India"}]
+            },
+            {
+              "Id": "7003",
+              "Title": "Director, Solutions Advisory",
+              "PostedDate": "2026-09-18",
+              "PrimaryLocation": "New York, NY, United States",
+              "WorkplaceType": "",
+              "ExternalQualificationsStr": "",
+              "ExternalResponsibilitiesStr": "",
+              "secondaryLocations": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

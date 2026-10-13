@@ -16,7 +16,9 @@ CAREERS_URLS: dict[str, str] = {
     "Barclays": "https://barclays.wd3.myworkdayjobs.com/en-US/External_Career_Site_Barclays",
     "Deutsche Bank": "https://db.wd3.myworkdayjobs.com/DBWebsite",
     "Northern Trust": "https://ntrs.wd1.myworkdayjobs.com/northerntrust",
-    "Icertis": "https://iaaviz.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/Jobs-at-Icertis/",
+    # Oracle Fusion HCM needs the internal site number (not the pretty "Jobs-at-Icertis"
+    # slug) to read the job-search API; this form was verified to resolve to the same site.
+    "Icertis": "https://iaaviz.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/requisitions",
     "Druva": "https://job-boards.greenhouse.io/druva",
     "FIS": "https://fis.wd5.myworkdayjobs.com/SearchJobs",
     "Fiserv": "https://fiserv.wd5.myworkdayjobs.com/en-US/EXT",
@@ -39,8 +41,9 @@ CAREERS_URLS: dict[str, str] = {
     "ADP": "https://jobs.adp.com/en/locations/apac/india/",
     # Pune banking/fintech pass (2026-09-28): each board was queried directly and returned
     # live Pune postings. See "Pune banking/fintech pass" in scripts/seed_urls_research.md.
-    # BNY moved off Workday to Oracle Fusion HCM (site CX_3001).
-    "BNY": "https://eofe.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/BNY-Careers",
+    # BNY moved off Workday to Oracle Fusion HCM (site CX_3001); same site-number form as
+    # Icertis above, needed so `detect()` can find the job-search API without guessing.
+    "BNY": "https://eofe.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_3001/requisitions",
     "State Street": "https://statestreet.wd1.myworkdayjobs.com/Global",
     "TIAA": "https://tiaa.wd1.myworkdayjobs.com/Search",
     "Worldpay": "https://worldpay.wd5.myworkdayjobs.com/Worldpay_External_Careers_Site",
@@ -57,6 +60,10 @@ CAREERS_URLS: dict[str, str] = {
     # postings' ownership was unclear) — this is Global Payments' own, current
     # portal. Custom Next.js site, no platform `detect()` recognizes.
     "Global Payments": "https://jobs.globalpayments.com/",
+    # 2026-10-13 company-list research pass: verified live directly (Greenhouse board
+    # fetched, real current postings confirmed). See scripts/seed_urls_research.md.
+    "Commvault": "https://job-boards.greenhouse.io/commvault",
+    "Turing": "https://job-boards.greenhouse.io/turing",
 }
 
 _ROWS: list[dict] = [
@@ -134,6 +141,13 @@ _ROWS: list[dict] = [
         {"name": n, "tier": T.STANDARD, "state": S.BLOCKED}
         for n in ["Poonawalla Fincorp", "IIT Bombay", "Technology Innovation Hub"]
     ),
+    # 2026-10-13 research pass (see scripts/seed_urls_research.md "Candidates to verify,
+    # round 2"): both boards fetched live directly with real current Pune/remote-India
+    # postings, so these get a careers_url like other seeds — but low volume today
+    # (Commvault: 2 Pune roles; Turing: India-remote roles skew senior), so starting as
+    # Candidate rather than Active like the original higher-confidence seed batch.
+    {"name": "Commvault", "tier": T.PREMIUM, "category": C.PRODUCT_SAAS, "state": S.CANDIDATE},
+    {"name": "Turing", "tier": T.STANDARD, "category": C.AI_FIRST, "state": S.CANDIDATE},
 ]
 
 SEED_COMPANIES: list[dict] = [

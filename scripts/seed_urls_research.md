@@ -147,3 +147,45 @@ returned live Pune postings. All new rows are `state=candidate`.
 | Global Payments (TSYS board `tsys.wd1.myworkdayjobs.com/tsys`) | yes | 16 live Pune postings, but TSYS Issuer Solutions was divested to FIS in Jan 2026, so the board's Pune roles likely belong to FIS (already seeded). Ownership is ambiguous, so not added |
 | Allstate India | yes | `allstate.wd5.myworkdayjobs.com/allstate_careers` has live Pune software roles. Insurance, not banking/fintech, so out of scope for this pass |
 | Euronet | yes (per job boards) | ATS is `euronet.hire.trakstar.com`, which `detect()` doesn't recognise |
+
+---
+
+## Round 2: wider company-list expansion (2026-10-13)
+
+Goal this time: not just banking/fintech — product/SaaS, India GCCs, AI-first, and genuinely
+remote-first companies, after the CTC floor was raised to 16 LPA everywhere. A subagent proposed
+~15 candidates from web search + aggregator cross-checks (BuiltIn, The Muse, apna.co mirrors of a
+company's real ATS feed) rather than fetching each company's own board directly. Before adding
+anything, each Greenhouse/Workday candidate was re-verified here by calling the real public API
+directly (same method as every "verified working" row above) — aggregator-sourced confidence
+turned out to be unreliable in two of six cases, so treat that method as a lead to verify, not a
+source of truth on its own.
+
+### Added to `seed.py` (state=candidate)
+
+| Company | Careers URL | Detected platform | Confidence/notes |
+|---|---|---|---|
+| Commvault | https://job-boards.greenhouse.io/commvault | greenhouse | verified working — fetched directly, 53 postings, 2 genuinely in Pune (`Senior Engineer-C#`, `Senior Engineer - DevOps`, combined with Bangalore/Hyderabad). Low volume but real |
+| Turing | https://job-boards.greenhouse.io/turing | greenhouse | verified working — fetched directly, 29 postings, real India-remote AI/SWE roles (`Staff Software Engineer \| India - Remote`, `Forward-Deployed AI Engineer`). Skews senior today |
+
+### Investigated and NOT added
+
+| Company | Why not |
+|---|---|
+| Workday Inc. (the HR SaaS company itself) | Workday tenant confirmed (`workday.wd5.myworkdayjobs.com/Workday`), 22 live Pune postings — but all Workday-implementation consulting/support roles (`Sr/Consultant - Workday Financials`, `Technical Support Engineer`), not backend/AI engineering. Wrong role type despite volume |
+| Allstate India | Already rejected in the Sep 28 pass as out-of-scope (insurance, not banking/fintech); re-confirmed here it's also the wrong role type — the only 2 Pune postings found were `BI Developer Analyst` and `Reconciliations Analyst`, not engineering |
+| Fractal Analytics | Subagent claimed a live Pune "Fullstack Engineer (Python, FastAPI, React)" via an aggregator mirror. Direct fetch of the real Workday tenant (`fractal.wd1.myworkdayjobs.com/Careers`, 77 postings) found **zero** India or Pune postings currently — the aggregator-sourced claim did not hold up. Don't trust this lead without re-fetching fresh |
+| SS&C Technologies | Guessed Workday site path (`ssctech.wd1.myworkdayjobs.com/SSnCCareers`) 404s — the real site segment wasn't confirmed, needs a fresh look before it's worth adding |
+| Synopsys, Snowflake, Eaton, Honeywell, John Deere, Cummins, Haptik, Canonical, Atlassian | Subagent flagged these itself as aggregator-confirmed or weak (bespoke/Avature/Eightfold/Oracle-style portals, or iCIMS), not directly fetched and rendered. Given the Fractal false positive above, not adding any of these without a direct re-check first |
+
+### iCIMS: new finding worth a follow-up
+
+Building a connector for iCIMS was written off earlier in this file as untested. Turns out the
+`/jobs/search` endpoint on a real, confirmed-live iCIMS board (tested against
+`globalcareers-ice.icims.com`, which the Sep 28 pass already confirmed has real Pune postings)
+returns a **server-rendered HTML page**, not a JS-only shell — so it's scrapable, just not a clean
+JSON API like Oracle/Workday. Worth building as a follow-up: would unlock MSCI and Intercontinental
+Exchange immediately (both already Active with confirmed Pune postings, just no connector today),
+and possibly Persistent Systems once its real careers URL is re-confirmed (the one currently seeded,
+`careers-persistentsystems.icims.com`, redirects to an unrelated cached marketing fragment — it's
+stale and needs replacing, not just a missing connector).

@@ -61,7 +61,12 @@ def from_url(url: str) -> Detection | None:
     if "darwinbox" in host:
         return Detection.of(Platform.DARWINBOX)
     if "oraclecloud.com" in host or "taleo.net" in host:
-        return Detection.of(Platform.ORACLE)
+        # The human-friendly careers URL (".../sites/Jobs-at-Acme/") doesn't carry the site
+        # number the REST API needs, but Oracle also accepts that number directly in the same
+        # spot (".../sites/CX_1/requisitions") — if it's there, use it; otherwise board_id stays
+        # None (same as today) rather than guessing from the pretty slug.
+        m = re.search(r"/sites/([A-Za-z]{1,6}_\d+)(?:/|$)", path)
+        return Detection.of(Platform.ORACLE, f"{host}/{m[1]}" if m else None)
     if "icims.com" in host:
         return Detection.of(Platform.ICIMS)
     if "smartrecruiters.com" in host:

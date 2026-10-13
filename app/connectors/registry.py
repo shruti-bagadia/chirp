@@ -6,12 +6,14 @@ from app.connectors.ashby import AshbyConnector
 from app.connectors.base import Connector
 from app.connectors.greenhouse import GreenhouseConnector
 from app.connectors.lever import LeverConnector
+from app.connectors.oracle import OracleConnector
 from app.connectors.workday import WorkdayConnector
 
 CONNECTORS: dict[str, Connector] = {
     "greenhouse": GreenhouseConnector(),
     "lever": LeverConnector(),
     "ashby": AshbyConnector(),
+    "oracle": OracleConnector(),
     # A large global tenant (Accenture, NVIDIA, ...) can have thousands of postings;
     # the connector caps out at 500 (see MAX_PAGES), taken in whatever order Workday
     # returns them, so an unfiltered fetch can miss India postings entirely on big
