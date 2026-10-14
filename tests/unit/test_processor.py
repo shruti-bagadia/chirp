@@ -11,6 +11,8 @@ from app.llm.pii import Redactor
 from app.llm.ratelimit import DailyBudget, MemoryUsage, TokenBucket
 from app.profile.model import Profile
 from app.resume.render import (
+    CompileError,
+    compile_pdf,
     count_pages,
     emphasize,
     fit_one_page,
@@ -173,6 +175,20 @@ def test_too_long_resume_trimmed_or_error():
     assert r2.status is JobStatus.ERROR and "one page" in r2.reason
 
 
+def test_compile_error_keeps_its_full_detail_not_just_the_first_line():
+    """Regression: `str(exc).splitlines()[0]` used to keep only "LaTeX failed:" and
+    throw away every actual diagnostic line after it, every time a real compile failed
+    in production — there was nothing left to debug from."""
+
+    def broken(tex):
+        raise CompileError("LaTeX failed:\nmissing.sty not found\nsee resume.log for details")
+
+    r = run(client_with(SCORE, TAILOR), compile_fn=broken)
+    assert r.status is JobStatus.ERROR
+    assert "missing.sty not found" in r.reason
+    assert "see resume.log for details" in r.reason
+
+
 def test_score_parsing_and_adjustments():
     s = ScoreResult.from_dict(SCORE)
     assert adjusted_score(s, "hybrid") == 85 and adjusted_score(s, "onsite") == 75
@@ -215,3 +231,13 @@ def test_count_pages():
 def test_real_pdf_compiles_to_one_page():
     fitted = fit_one_page(PROFILE, parse_draft(TAILOR), "Globex & Co")
     assert fitted.pdf.startswith(b"%PDF") and count_pages(fitted.pdf) == 1
+
+
+@pytest.mark.skipif(not (shutil.which("pdflatex") or shutil.which("tectonic")), reason="no LaTeX")
+def test_real_compile_failure_includes_the_actual_diagnostic():
+    """A genuinely broken .tex should raise with real detail in the message, not an
+    empty "LaTeX failed:" — that's exactly what reached production undiagnosable."""
+    with pytest.raises(CompileError) as exc_info:
+        compile_pdf(r"\documentclass{article}\usepackage{doesnotexist9000}\begin{document}x")
+    assert "LaTeX failed:" in str(exc_info.value)
+    assert len(str(exc_info.value)) > len("LaTeX failed:")

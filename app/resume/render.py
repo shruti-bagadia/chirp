@@ -187,11 +187,25 @@ def compile_pdf(tex: str) -> bytes:
             ]
         else:
             raise CompileError("Install Tectonic (or a TeX distribution) to build PDFs.")
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        try:
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        except subprocess.TimeoutExpired as exc:
+            raise CompileError(f"LaTeX timed out after {exc.timeout}s") from exc
         pdf = Path(d) / "resume.pdf"
         if proc.returncode != 0 or not pdf.exists():
-            tail = (proc.stdout or proc.stderr)[-800:]
-            raise CompileError(f"LaTeX failed:\n{tail}")
+            # stdout and stderr alone have been seen completely empty on a real failure
+            # (process killed, or the engine's own diagnostics went only to its .log file,
+            # not captured here) — fall back to the compiler's log file when that happens,
+            # rather than raising an error with nothing in it to debug from.
+            detail = "\n".join(s for s in (proc.stdout, proc.stderr) if s).strip()
+            if not detail:
+                log_file = next(Path(d).glob("*.log"), None)
+                if log_file is not None:
+                    detail = log_file.read_text(encoding="utf-8", errors="replace")
+            detail = (
+                detail or f"(no output; exit code {proc.returncode}, pdf written: {pdf.exists()})"
+            )
+            raise CompileError(f"LaTeX failed:\n{detail[-1200:]}")
         return pdf.read_bytes()
 
 

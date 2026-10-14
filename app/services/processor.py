@@ -106,7 +106,7 @@ def process_job(
     try:
         fitted = fit_one_page(profile, draft, job.company, compile_fn=compile_fn)
     except CompileError as exc:
-        return ProcessResult(JobStatus.ERROR, str(exc).splitlines()[0], score, final)
+        return ProcessResult(JobStatus.ERROR, str(exc), score, final)
 
     if job.work_mode == "onsite":
         flags.append("onsite")
