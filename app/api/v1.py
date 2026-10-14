@@ -306,6 +306,31 @@ def apply_ctc_floor(db: Session = Depends(get_db)) -> dict:
     return {"patched": True, "before": before, "after": DEFAULT_SETTINGS["ctc_tiers"]}
 
 
+@router.get("/debug/recent-jobs", dependencies=[Depends(require_token)])
+def recent_jobs(db: Session = Depends(get_db), limit: int = 20) -> dict:
+    """What the last Find/Process run actually did to each job, newest first.
+
+    Read-only: for diagnosing "the pipeline ran but nothing showed up in the dashboard"
+    from the laptop, which also can't query the database directly.
+    """
+    rows = db.scalars(
+        select(Job).options(selectinload(Job.company)).order_by(Job.updated_at.desc()).limit(limit)
+    ).all()
+    return {
+        "jobs": [
+            {
+                "title": j.title,
+                "company": j.company.name,
+                "status": j.status.value,
+                "status_reason": j.status_reason,
+                "fit_score": j.fit_score,
+                "updated_at": j.updated_at.isoformat() if j.updated_at else None,
+            }
+            for j in rows
+        ]
+    }
+
+
 # ---------- Answer matching ----------
 
 

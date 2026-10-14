@@ -19,7 +19,8 @@ from app.core.config import get_settings
 from app.core.defaults import DEFAULT_SETTINGS
 from app.db import models  # noqa: F401
 from app.db.base import Base
-from app.db.models import Answer, AppSettings
+from app.db.enums import CompanyState, JobStatus, Platform, Tier
+from app.db.models import Answer, AppSettings, Company, Job
 from app.db.session import get_db
 from tests.conftest import get_test_db_url, with_retries
 
@@ -135,6 +136,36 @@ def test_apply_ctc_floor_with_no_settings_row_yet(client):
     assert res.status_code == 200 and res.json()["patched"] is False
 
 
+def test_recent_jobs_shows_status_and_reason(client, db):
+    company = Company(
+        name="Mastercard", tier=Tier.PREMIUM, state=CompanyState.ACTIVE, platform=Platform.WORKDAY
+    )
+    db.add(company)
+    db.commit()
+    job = Job(
+        company_id=company.id,
+        url="https://example.com/job/1",
+        canonical_url="https://example.com/job/1",
+        dedupe_key="key-1",
+        title="Backend Engineer",
+        status=JobStatus.FILTERED_OUT,
+        status_reason="Score below threshold",
+        fit_score=55,
+    )
+    db.add(job)
+    db.commit()
+
+    res = client.get("/api/v1/debug/recent-jobs")
+    assert res.status_code == 200
+    jobs = res.json()["jobs"]
+    assert len(jobs) == 1
+    assert jobs[0]["title"] == "Backend Engineer"
+    assert jobs[0]["company"] == "Mastercard"
+    assert jobs[0]["status"] == "filtered_out"
+    assert jobs[0]["status_reason"] == "Score below threshold"
+    assert jobs[0]["fit_score"] == 55
+
+
 @pytest.mark.parametrize(
     "method,path,json_body",
     [
@@ -142,6 +173,7 @@ def test_apply_ctc_floor_with_no_settings_row_yet(client):
         ("get", "/api/v1/profile", None),
         ("post", "/api/v1/answers/seed", {"answers": []}),
         ("post", "/api/v1/settings/ctc-floor", None),
+        ("get", "/api/v1/debug/recent-jobs", None),
     ],
 )
 def test_endpoints_require_token(client, method, path, json_body):
