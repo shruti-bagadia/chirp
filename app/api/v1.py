@@ -16,11 +16,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import get_settings
+from app.core.defaults import DEFAULT_SETTINGS
 from app.core.security import tokens_match
-from app.db.enums import Actor, JobStatus, RequestStatus, RunKind
+from app.db.enums import Actor, AnswerCategory, AnswerType, JobStatus, RequestStatus, RunKind
 from app.db.models import (
     Answer,
     ApplicationAnswer,
+    AppSettings,
     Company,
     Job,
     JobEvent,
@@ -28,7 +30,7 @@ from app.db.models import (
     RunRequest,
 )
 from app.db.session import get_db
-from app.services.answers import match_question
+from app.services.answers import match_question, save_answer
 from app.services.schedule import IST
 from app.services.states import InvalidTransition, check_transition
 from app.storage import make_storage
@@ -261,6 +263,47 @@ def profile_push(body: ProfilePush, db: Session = Depends(get_db)) -> dict:
     db.add(row)
     db.commit()
     return {"version": next_version}
+
+
+# ---------- Answer bank (same reason as /profile: no direct DB access from the laptop) ----------
+
+
+class AnswerSeed(BaseModel):
+    question: str
+    answer: str
+    category: AnswerCategory = AnswerCategory.BEHAVIORAL
+    type: AnswerType = AnswerType.PERSONAL
+
+
+class AnswersSeedRequest(BaseModel):
+    answers: list[AnswerSeed]
+
+
+@router.post("/answers/seed", dependencies=[Depends(require_token)])
+def answers_seed(body: AnswersSeedRequest, db: Session = Depends(get_db)) -> dict:
+    for a in body.answers:
+        save_answer(db, a.question, a.answer, category=a.category, type_=a.type)
+    return {"saved": len(body.answers)}
+
+
+# ---------- Settings (same reason) ----------
+
+
+@router.post("/settings/ctc-floor", dependencies=[Depends(require_token)])
+def apply_ctc_floor(db: Session = Depends(get_db)) -> dict:
+    """Patch the live settings row's ctc_tiers to the current app/core/defaults.py value.
+
+    One-off endpoint for the same reason as /profile and /answers/seed: this ships whenever
+    DEFAULT_SETTINGS["ctc_tiers"] changes in code, since the settings row is only seeded from
+    it once, on first boot, and never re-synced automatically.
+    """
+    row = db.get(AppSettings, 1)
+    if row is None:
+        return {"patched": False, "reason": "no settings row yet; next boot will seed it"}
+    before = row.data.get("ctc_tiers")
+    row.data = {**row.data, "ctc_tiers": DEFAULT_SETTINGS["ctc_tiers"]}
+    db.commit()
+    return {"patched": True, "before": before, "after": DEFAULT_SETTINGS["ctc_tiers"]}
 
 
 # ---------- Answer matching ----------
